@@ -3,6 +3,7 @@
 	<name>Ligue1</name>
 	<comment></comment>
 	<projects>
+		<project>DOANDGOUTILS</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>
