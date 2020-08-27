@@ -1,4 +1,4 @@
-package connection;
+package com.doandgo.ligue1.connection;
 
 import java.io.BufferedReader;
 import java.io.IOException;
