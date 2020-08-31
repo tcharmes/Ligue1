@@ -3,6 +3,13 @@ package com.doandgo.ligue1.matchs;
 import java.util.Comparator;
 import java.util.Map;
 
+/**
+ * 
+ * Classe utilisée pour classée les équipes dans les 3 classements selon leur nombre de points
+ * 
+ * @author Thomas CHARMES
+ *
+ */
 public class ClassementComparator implements Comparator<String> {
 
 	private Long classement;

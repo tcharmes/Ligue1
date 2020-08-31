@@ -12,10 +12,22 @@ import com.doandgo.ligue1.utils.UtilitaireLigue1;
 import com.doandgo.moovapps.exceptions.VdocHelperException;
 import com.triactive.jdo.store.mapping.NullValueException;
 
+/**
+ * 
+ * Classe d'extension positionnée sur le sous-formulaire de l'unique étape du processus "Match"
+ * Vérifie que les données du formulaire sont cohérentes, met à jour les données des classements
+ * et des confrontations dans les tables correspondantes
+ * 
+ * @author Thomas CHARMES
+ *
+ */
 public class Match extends BaseDocumentExtension {
 
 	private static final long serialVersionUID = 1L;
 
+	/**
+	 * Vérifie la cohérence des données du formulaire (nombre de cases cochées, surnoms des équipes)
+	 */
 	@Override
 	public boolean onBeforeSave() {
 
@@ -29,6 +41,10 @@ public class Match extends BaseDocumentExtension {
 		return super.onBeforeSave();
 	}
 
+	/**
+	 * Coche les cases sur le classement, l'importance, et le résultat en fonction des informations
+	 * renseignées dans le formulaire (surnoms des équipes, score)
+	 */
 	@Override
 	public void onPropertyChanged(IProperty property) {
 
@@ -100,6 +116,11 @@ public class Match extends BaseDocumentExtension {
 		super.onPropertyChanged(property);
 	}
 
+	/**
+	 * Comptabilise le match
+	 * Ou réinitialise la saison
+	 * Ou génère le rapport détaillé de la rencontre
+	 */
 	@Override
 	public boolean onBeforeSubmit(IAction action) {
 
@@ -119,6 +140,11 @@ public class Match extends BaseDocumentExtension {
 		return super.onBeforeSubmit(action);
 	}
 
+	/**
+	 * Vérifie la cohérence des données du formulaire (nombre de cases cochées, surnoms des équipes)
+	 * 
+	 * @return
+	 */
 	private boolean checkAllFieldsAreOK() {
 		IWorkflowInstance wi = getWorkflowInstance();
 		if (wi != null) {
@@ -191,6 +217,11 @@ public class Match extends BaseDocumentExtension {
 		return true;
 	}
 
+	/**
+	 * Remet à zéro la totalité de la table "Equipes" pour redémarrer une nouvelle saison
+	 * 
+	 * @return
+	 */
 	private boolean resetAllSeason() {
 		IWorkflowInstance wi = getWorkflowInstance();
 
@@ -216,6 +247,14 @@ public class Match extends BaseDocumentExtension {
 		return true;
 	}
 
+	/**
+	 * Vérifie que les données du formulaire sont cohérentes, met à jour les données des classements
+	 * et des confrontations dans les tables correspondantes en fonction des cases cochées
+	 * @param wi
+	 * @param controller
+	 * @param wm
+	 * @return
+	 */
 	public static boolean checkAllFieldsAreOKAndExecuteMatch(IWorkflowInstance wi, IResourceController controller,
 			IWorkflowModule wm) {
 

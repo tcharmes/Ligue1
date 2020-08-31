@@ -19,6 +19,12 @@ import com.doandgo.commons.utils.StringUtils;
 import com.doandgo.moovapps.exceptions.VdocHelperException;
 import com.doandgo.moovapps.utils.VdocHelper;
 
+/**
+ * Opérations de base sur les tables
+ * 
+ * @author Thomas CHARMES
+ *
+ */
 public class UtilitaireLigue1 extends BaseResourceExtension {
 
 	private static final long serialVersionUID = 1L;
@@ -38,6 +44,8 @@ public class UtilitaireLigue1 extends BaseResourceExtension {
 	public final static String FORM_FIELD_CHECK_BOX_RESET_ALL_SEASON = "ResetAllSeason";
 	public final static String FORM_FIELD_CHECK_BOX_COMPTABILISE = "Comptabilise";
 	public final static String FORM_FIELD_SCORE = "Score";
+	public final static String FORM_BUTTON_GENERER_RAPPORT_STATISTIQUES = "Statistiques";
+	public final static String FORM_FIELD_CHECK_BOX_COMPTABILISE_RAPPORT_STATISTIQUES_JOURNEE = "RapportStatistiques";
 
 	public final static String TABLE_FIELD_NOMBRE_MATCHS_JOUES = "nombreMatchsJoues";
 	public final static String TABLE_FIELD_STRING_CLASSEMENT = "classement";
@@ -141,18 +149,78 @@ public class UtilitaireLigue1 extends BaseResourceExtension {
 	public final static String TABLE_FIELD_SERIE_V_EN_COURS = "SerieVEnCours";
 	public final static String TABLE_FIELD_SERIE_V_EN_COURS_DOMICILE = "SerieVEnCoursDomicile";
 	public final static String TABLE_FIELD_SERIE_V_EN_COURS_EXTERIEUR = "SerieVEnCoursExterieur";
-
-	public final static String ORGANIZATION_NAME = "DefaultOrganization";
-	public final static String APPLICATION_NAME = "ApplicationLigue1";
-	public final static String DATA_RESERVOIR_EQUIPES_NAME = "ReservoirDeDonneesEquipes";
-	public final static String TABLE_EQUIPES_NAME = "tableEquipes";
-	public final static String TABLE_CONFRONTATIONS_NAME = "tableConfrontations";
+	
 	public static final String TABLE_CONFRONTATIONS_FIELD_RECENT_5 = "Recent5";
 	public static final String TABLE_CONFRONTATIONS_FIELD_RECENT_4 = "Recent4";
 	public static final String TABLE_CONFRONTATIONS_FIELD_RECENT_3 = "Recent3";
 	public static final String TABLE_CONFRONTATIONS_FIELD_RECENT_2 = "Recent2";
 	public static final String TABLE_CONFRONTATIONS_FIELD_RECENT_1 = "Recent1";
 	public static final String TABLE_CONFRONTATIONS_FIELD_MATCH = "match";
+	
+	public static final String TABLE_STATISTIQUES_FIELD_MATCH = "match";
+	public static final String TABLE_STATISTIQUES_FIELD_MOYENNE_BUTS_DOMICILE = "MoyButsEquipeDom";
+	public static final String TABLE_STATISTIQUES_FIELD_MOYENNE_BUTS_EXTERIEUR = "MoyButsEquipeExt";
+	public static final String TABLE_STATISTIQUES_FIELD_MOYENNE_BUTS_MATCH = "MoyButsMatch";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_NULS = "Nul";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_VICTOIRE_DOMICILE = "VEquipeDom";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_VICTOIRE_EXTERIEUR = "VEquipeExt";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_MATCH_PLUS_0_5_BUTS = "Plus05";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_MATCH_PLUS_1_5_BUTS = "Plus15";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_MATCH_PLUS_2_5_BUTS = "Plus25";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_MATCH_PLUS_3_5_BUTS = "Plus35";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_MATCH_PLUS_4_5_BUTS = "Plus45";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_MATCH_MOINS_0_5_BUTS = "Moins05";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_MATCH_MOINS_1_5_BUTS = "Moins15";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_MATCH_MOINS_2_5_BUTS = "Moins25";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_MATCH_MOINS_3_5_BUTS = "Moins35";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_MATCH_MOINS_4_5_BUTS = "Moins45";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_DOMICILE_PLUS_0_5_BUTS = "E1Plus05";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_DOMICILE_PLUS_1_5_BUTS = "E1Plus15";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_DOMICILE_PLUS_2_5_BUTS = "E1Plus25";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_DOMICILE_PLUS_3_5_BUTS = "E1Plus35";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_DOMICILE_PLUS_4_5_BUTS = "E1Plus45";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_DOMICILE_MOINS_0_5_BUTS = "E1Moins05";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_DOMICILE_MOINS_1_5_BUTS = "E1Moins15";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_DOMICILE_MOINS_2_5_BUTS = "E1Moins25";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_DOMICILE_MOINS_3_5_BUTS = "E1Moins35";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_DOMICILE_MOINS_4_5_BUTS = "E1Moins45";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_EXTERIEUR_PLUS_0_5_BUTS = "E2Plus05";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_EXTERIEUR_PLUS_1_5_BUTS = "E2Plus15";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_EXTERIEUR_PLUS_2_5_BUTS = "E2Plus25";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_EXTERIEUR_PLUS_3_5_BUTS = "E2Plus35";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_EXTERIEUR_PLUS_4_5_BUTS = "E2Plus45";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_EXTERIEUR_MOINS_0_5_BUTS = "E2Moins05";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_EXTERIEUR_MOINS_1_5_BUTS = "E2Moins15";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_EXTERIEUR_MOINS_2_5_BUTS = "E2Moins25";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_EXTERIEUR_MOINS_3_5_BUTS = "E2Moins35";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_EXTERIEUR_MOINS_4_5_BUTS = "E2Moins45";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_LDEM = "LDEM";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_ECART_BUT_MOINS_1 = "EcartButMoins1";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_ECART_BUT_MOINS_2 = "EcartButMoins2";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_ECART_BUT_MOINS_3 = "EcartButMoins3";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_ECART_BUT_MOINS_4 = "EcartButMoins4";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_ECART_BUT_MOINS_5 = "EcartButMoins5";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_ECART_BUT_MOINS_6 = "EcartButMoins6";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_ECART_BUT_MOINS_7 = "EcartButMoins7";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_ECART_BUT_MOINS_8 = "EcartButMoins8";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_ECART_BUT_MOINS_9 = "EcartButMoins9";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_ECART_BUT_PLUS_1 = "EcartButPlus1";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_ECART_BUT_PLUS_2 = "EcartButPlus2";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_ECART_BUT_PLUS_3 = "EcartButPlus3";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_ECART_BUT_PLUS_4 = "EcartButPlus4";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_ECART_BUT_PLUS_5 = "EcartButPlus5";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_ECART_BUT_PLUS_6 = "EcartButPlus6";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_ECART_BUT_PLUS_7 = "EcartButPlus7";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_ECART_BUT_PLUS_8 = "EcartButPlus8";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_ECART_BUT_PLUS_9 = "EcartButPlus9";
+	
+
+	public final static String ORGANIZATION_NAME = "DefaultOrganization";
+	public final static String APPLICATION_NAME = "ApplicationLigue1";
+	public final static String DATA_RESERVOIR_EQUIPES_NAME = "ReservoirDeDonneesEquipes";
+	public final static String TABLE_EQUIPES_NAME = "tableEquipes";
+	public final static String TABLE_STATISTIQUES_NAME = "StatistiquesMatchs";
+	public final static String TABLE_CONFRONTATIONS_NAME = "tableConfrontations";
 	public final static String GROUP_PROCESS_NAME = "GroupeDeProcessusLigue1";
 	public final static String PROCESS_NAME = "match";
 	public final static String VERSION_PROCESS_NAME = "match_1.0";

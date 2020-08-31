@@ -23,6 +23,7 @@ import com.axemble.vdoc.sdk.modules.IDirectoryModule;
 import com.axemble.vdoc.sdk.modules.IProjectModule;
 import com.axemble.vdoc.sdk.modules.IWorkflowModule;
 import com.axemble.vdoc.sdk.utils.Logger;
+import com.doandgo.commons.utils.StringUtils;
 import com.doandgo.ligue1.matchs.ClassementComparator;
 import com.doandgo.ligue1.matchs.Match;
 import com.doandgo.ligue1.utils.UtilitaireLigue1;
@@ -32,8 +33,8 @@ import com.doandgo.moovapps.studio.DoandgoUtil;
 import com.doandgo.moovapps.utils.VdocHelper;
 
 /**
- * Pousse les documents process d'un workflow (version de processus) à l'étape
- * suivante avec un utilisateur donné
+ * Comptabilise les documents process correspondants à des matchs en enregistrant les données liées
+ * aux résultats dans les tables "Equipes" et "Confrontations"
  * 
  * @author Thomas CHARMES
  */
@@ -45,14 +46,22 @@ public class AgentComptabilise1Match extends BaseAgent {
 	@Override
 	protected void execute() {
 		try {
-			execute(getReport());
+			getParametersForAgentChangeEtape(getReport());
 		} catch (VdocHelperException | ModuleException e) {
 			reportError("Erreur à l'éxécution de l'agent " + this.getClass().getName() + " : " + e.getMessage());
 			e.printStackTrace();
 		}
 	}
 
-	private static void execute(IReport report) throws VdocHelperException, ModuleException {
+	/**
+	 * Récupère les données de la table de paramétrage "ChangeEtape" de l'apps Do&GoUtils
+	 * Appelle la méthode changeEtape qui effectue le traitement avec ses paramètres là
+	 * Met à jour les classements
+	 * @param report
+	 * @throws VdocHelperException
+	 * @throws ModuleException
+	 */
+	private static void getParametersForAgentChangeEtape(IReport report) throws VdocHelperException, ModuleException {
 
 		iReport = report;
 
@@ -107,9 +116,9 @@ public class AgentComptabilise1Match extends BaseAgent {
 			}
 
 			if (commentaire == null) {
-				changeEtape(null, libelleEtape, user, project, workflow, boutonAction, wm);
+				countMatchInStandingsAndOppositions(null, libelleEtape, user, project, workflow, boutonAction, wm);
 			} else {
-				changeEtape(commentaire, libelleEtape, user, project, workflow, boutonAction, wm);
+				countMatchInStandingsAndOppositions(commentaire, libelleEtape, user, project, workflow, boutonAction, wm);
 			}
 		}
 		
@@ -120,7 +129,21 @@ public class AgentComptabilise1Match extends BaseAgent {
 		Modules.releaseModule(dm);
 	}
 
-	private static void changeEtape(String commentaire, String libelleEtape, IUser user, IProject project,
+	/**
+	 * Comptabilise les matchs pour lesquels la case "Comptabilisé ?" n'est pas cochée et le score est renseigné
+	 * Met à jour les score dans la table "Configurations"
+	 * 
+	 * @param commentaire
+	 * @param libelleEtape
+	 * @param user
+	 * @param project
+	 * @param workflow
+	 * @param boutonAction
+	 * @param wm
+	 * @throws VdocHelperException
+	 * @throws WorkflowModuleException
+	 */
+	private static void countMatchInStandingsAndOppositions(String commentaire, String libelleEtape, IUser user, IProject project,
 			IWorkflow workflow, String boutonAction, IWorkflowModule wm)
 			throws VdocHelperException, WorkflowModuleException {
 
@@ -136,6 +159,7 @@ public class AgentComptabilise1Match extends BaseAgent {
 		for (IWorkflowInstance wi : listWI) {
 
 			Boolean comptabilise = (Boolean) wi.getValue(UtilitaireLigue1.FORM_FIELD_CHECK_BOX_COMPTABILISE);
+			String score = (String) wi.getValue(UtilitaireLigue1.FORM_FIELD_SCORE);
 
 			IResourceController controller = wm.getResourceController(wi);
 
@@ -144,7 +168,7 @@ public class AgentComptabilise1Match extends BaseAgent {
 				return;
 			}
 
-			if (!comptabilise) {
+			if (!comptabilise && ! StringUtils.isEmpty(score)) {
 
 				boolean executeMatch = Match.checkAllFieldsAreOKAndExecuteMatch(wi, controller, wm);
 
@@ -167,6 +191,9 @@ public class AgentComptabilise1Match extends BaseAgent {
 		reportInfo("Les scores ont bien été mis à jour dans la table Confrontations");
 	}
 	
+	/**
+	 * Met à jour les classements suivants : Général, Domicile, Extérieur
+	 */
 	private static void updateStandings() {
 
 		IDirectoryModule dm = Modules.getDirectoryModule();
