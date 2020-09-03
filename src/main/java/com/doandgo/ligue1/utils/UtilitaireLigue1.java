@@ -1,6 +1,7 @@
 package com.doandgo.ligue1.utils;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,7 +32,7 @@ public class UtilitaireLigue1 extends BaseResourceExtension {
 
 	@SuppressWarnings("unused")
 	private static final Logger LOGGER = Logger.getLogger(UtilitaireLigue1.class);
-
+	
 	public final static String FORM_FIELD_SURNOM_EQUIPE_DOMICILE = "SurnomE1";
 	public final static String FORM_FIELD_SURNOM_EQUIPE_EXTERIEUR = "SurnomE2";
 	public final static String FORM_FIELD_CHECK_BOX_VICTOIRE_EQUIPE_DOMICILE = "VictoireEquipeDomicile";
@@ -156,14 +157,17 @@ public class UtilitaireLigue1 extends BaseResourceExtension {
 	public static final String TABLE_CONFRONTATIONS_FIELD_RECENT_2 = "Recent2";
 	public static final String TABLE_CONFRONTATIONS_FIELD_RECENT_1 = "Recent1";
 	public static final String TABLE_CONFRONTATIONS_FIELD_MATCH = "match";
+	public static final String TABLE_CONFRONTATIONS_FIELD_DATE_LAST_MODIFICATION = "sys_ModificationDate";//TODO
 	
 	public static final String TABLE_STATISTIQUES_FIELD_MATCH = "match";
 	public static final String TABLE_STATISTIQUES_FIELD_MOYENNE_BUTS_DOMICILE = "MoyButsEquipeDom";
 	public static final String TABLE_STATISTIQUES_FIELD_MOYENNE_BUTS_EXTERIEUR = "MoyButsEquipeExt";
 	public static final String TABLE_STATISTIQUES_FIELD_MOYENNE_BUTS_MATCH = "MoyButsMatch";
 	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_NULS = "Nul";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_LDEM = "LDEM";
 	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_VICTOIRE_DOMICILE = "VEquipeDom";
 	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_VICTOIRE_EXTERIEUR = "VEquipeExt";
+	
 	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_MATCH_PLUS_0_5_BUTS = "Plus05";
 	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_MATCH_PLUS_1_5_BUTS = "Plus15";
 	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_MATCH_PLUS_2_5_BUTS = "Plus25";
@@ -194,7 +198,7 @@ public class UtilitaireLigue1 extends BaseResourceExtension {
 	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_EXTERIEUR_MOINS_2_5_BUTS = "E2Moins25";
 	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_EXTERIEUR_MOINS_3_5_BUTS = "E2Moins35";
 	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_EXTERIEUR_MOINS_4_5_BUTS = "E2Moins45";
-	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_LDEM = "LDEM";
+	
 	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_ECART_BUT_MOINS_1 = "EcartButMoins1";
 	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_ECART_BUT_MOINS_2 = "EcartButMoins2";
 	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_ECART_BUT_MOINS_3 = "EcartButMoins3";
@@ -213,6 +217,32 @@ public class UtilitaireLigue1 extends BaseResourceExtension {
 	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_ECART_BUT_PLUS_7 = "EcartButPlus7";
 	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_ECART_BUT_PLUS_8 = "EcartButPlus8";
 	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_ECART_BUT_PLUS_9 = "EcartButPlus9";
+	
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_EQUIPE_DOMICILE_0_BUT_MARQUE = "E1Exactement0ButMarque";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_EQUIPE_DOMICILE_1_BUT_MARQUE = "E1Exactement1ButMarque";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_EQUIPE_DOMICILE_2_BUTS_MARQUES = "E1Exactement2ButsMarques";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_EQUIPE_DOMICILE_3_BUTS_MARQUES = "E1Exactement3ButsMarques";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_EQUIPE_DOMICILE_4_BUTS_MARQUES = "E1Exactement4ButsMarques";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_EQUIPE_DOMICILE_5_BUTS_MARQUES = "E1Exactement5ButsMarques";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_EQUIPE_EXTERIEUR_0_BUT_MARQUE = "E2Exactement0ButMarque";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_EQUIPE_EXTERIEUR_1_BUT_MARQUE = "E2Exactement1ButMarque";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_EQUIPE_EXTERIEUR_2_BUTS_MARQUES = "E2Exactement2ButsMarques";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_EQUIPE_EXTERIEUR_3_BUTS_MARQUES = "E2Exactement3ButsMarques";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_EQUIPE_EXTERIEUR_4_BUTS_MARQUES = "E2Exactement4ButsMarques";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_EQUIPE_EXTERIEUR_5_BUTS_MARQUES = "E2Exactement5ButsMarques";
+	
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_EQUIPE_DOMICILE_0_BUT_ENCAISSE = "E1Exactement0ButEncaisse";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_EQUIPE_DOMICILE_1_BUT_ENCAISSE = "E1Exactement1ButEncaisse";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_EQUIPE_DOMICILE_2_BUTS_ENCAISSES = "E1Exactement2ButsEncaisses";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_EQUIPE_DOMICILE_3_BUTS_ENCAISSES = "E1Exactement3ButsEncaisses";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_EQUIPE_DOMICILE_4_BUTS_ENCAISSES = "E1Exactement4ButsEncaisses";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_EQUIPE_DOMICILE_5_BUTS_ENCAISSES = "E1Exactement5ButsEncaisses";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_EQUIPE_EXTERIEUR_0_BUT_ENCAISSE = "E2Exactement0ButEncaisse";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_EQUIPE_EXTERIEUR_1_BUT_ENCAISSE = "E2Exactement1ButEncaisse";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_EQUIPE_EXTERIEUR_2_BUTS_ENCAISSES = "E2Exactement2ButsEncaisses";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_EQUIPE_EXTERIEUR_3_BUTS_ENCAISSES = "E2Exactement3ButsEncaisses";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_EQUIPE_EXTERIEUR_4_BUTS_ENCAISSES = "E2Exactement4ButsEncaisses";
+	public static final String TABLE_STATISTIQUES_FIELD_POURCENTAGE_EQUIPE_EXTERIEUR_5_BUTS_ENCAISSES = "E2Exactement5ButsEncaisses";
 	
 
 	public final static String ORGANIZATION_NAME = "DefaultOrganization";
@@ -452,6 +482,26 @@ public class UtilitaireLigue1 extends BaseResourceExtension {
 		Modules.releaseModule(dm);
 		return null;
 	}
+	
+	public static IStorageResource getResourceStatistique(String match) throws VdocHelperException {
+
+		Map<String, Object> equalsConstraints = new HashMap<String, Object>();
+		equalsConstraints.put("match", match);
+
+		IDirectoryModule dm = Modules.getDirectoryModule();
+		IProjectModule pm = Modules.getProjectModule();
+		IWorkflowModule wm = Modules.getWorkflowModule();
+
+		IStorageResource resourceStatistique = VdocHelper.getDataUniverseResource(dm, pm, wm, ORGANIZATION_NAME,
+				APPLICATION_NAME, DATA_RESERVOIR_EQUIPES_NAME, TABLE_STATISTIQUES_NAME, equalsConstraints);
+		if (resourceStatistique != null) {
+			return resourceStatistique;
+		}
+		Modules.releaseModule(wm);
+		Modules.releaseModule(pm);
+		Modules.releaseModule(dm);
+		return null;
+	}
 
 	public static IStorageResource getResourceConfrontation(String match) throws VdocHelperException {
 
@@ -466,6 +516,25 @@ public class UtilitaireLigue1 extends BaseResourceExtension {
 				APPLICATION_NAME, DATA_RESERVOIR_EQUIPES_NAME, TABLE_CONFRONTATIONS_NAME, equalsConstraints);
 		if (confrontation != null) {
 			return confrontation;
+		}
+		Modules.releaseModule(wm);
+		Modules.releaseModule(pm);
+		Modules.releaseModule(dm);
+		return null;
+	}
+	
+	public static Collection<IStorageResource> getResourcesConfrontations() throws VdocHelperException {
+
+		Map<String, Object> equalsConstraints = new HashMap<String, Object>();
+
+		IDirectoryModule dm = Modules.getDirectoryModule();
+		IProjectModule pm = Modules.getProjectModule();
+		IWorkflowModule wm = Modules.getWorkflowModule();
+
+		Collection<IStorageResource> confrontations = VdocHelper.getDataUniverseResources(dm, pm, wm, ORGANIZATION_NAME,
+				APPLICATION_NAME, DATA_RESERVOIR_EQUIPES_NAME, TABLE_CONFRONTATIONS_NAME, equalsConstraints);
+		if (confrontations != null) {
+			return confrontations;
 		}
 		Modules.releaseModule(wm);
 		Modules.releaseModule(pm);
@@ -508,6 +577,12 @@ public class UtilitaireLigue1 extends BaseResourceExtension {
 		return null;
 	}
 
+	/** 
+	 * @param surnom
+	 * @param stat : le nom système du champ de la table "Equipes"
+	 * @return
+	 * @throws VdocHelperException
+	 */
 	public static int getStatInt(String surnom, String stat) throws VdocHelperException {
 
 		IStorageResource resourceEquipe = getResourceEquipe(surnom);
@@ -521,6 +596,27 @@ public class UtilitaireLigue1 extends BaseResourceExtension {
 			return nbMatchsJoues.intValue();
 		}
 		return 0;
+	}
+	
+	/** 
+	 * @param match
+	 * @param stat : le nom système du champ de la table "confrontations"
+	 * @return
+	 * @throws VdocHelperException
+	 */
+	public static Float getStatConfrontation(String match, String stat) throws VdocHelperException {
+
+		IStorageResource resourceConfrontation = getResourceConfrontation(match);
+
+		if (resourceConfrontation != null) {
+			Float nbMatchsJoues = (Float) resourceConfrontation.getValue(stat);
+			if (nbMatchsJoues.compareTo(0F) == 0 || nbMatchsJoues.equals(null)
+					|| nbMatchsJoues.toString().equals(null)) {
+				return 0F;
+			}
+			return nbMatchsJoues.floatValue();
+		}
+		return 0F;
 	}
 
 	public static void setNombreMatchsJouesPlusUn(String surnom) throws VdocHelperException {
