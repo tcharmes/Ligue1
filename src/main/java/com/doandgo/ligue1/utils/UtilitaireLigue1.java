@@ -16,7 +16,6 @@ import com.axemble.vdoc.sdk.modules.IDirectoryModule;
 import com.axemble.vdoc.sdk.modules.IProjectModule;
 import com.axemble.vdoc.sdk.modules.IWorkflowModule;
 import com.axemble.vdoc.sdk.utils.Logger;
-import com.doandgo.commons.utils.StringUtils;
 import com.doandgo.moovapps.exceptions.VdocHelperException;
 import com.doandgo.moovapps.utils.VdocHelper;
 
@@ -50,8 +49,11 @@ public class UtilitaireLigue1 extends BaseResourceExtension {
 
 	public final static String TABLE_FIELD_NOMBRE_MATCHS_JOUES = "nombreMatchsJoues";
 	public final static String TABLE_FIELD_STRING_CLASSEMENT = "classement";
+	public final static String TABLE_FIELD_DIFFERENCE_DE_BUTS = "GoalAverage";
 	public final static String TABLE_FIELD_STRING_CLASSEMENT_DOMICILE = "classementDomicile";
+	public final static String TABLE_FIELD_DIFFERENCE_DE_BUTS_DOMICILE = "HomeGoalAverage";
 	public final static String TABLE_FIELD_STRING_CLASSEMENT_EXTERIEUR = "classementExterieur";
+	public final static String TABLE_FIELD_DIFFERENCE_DE_BUTS_EXTERIEUR = "AwayGoalAverage";
 	public final static String TABLE_FIELD_STRING_ID = "id";
 	public final static String TABLE_FIELD_NAME = "nom";
 	public final static String TABLE_FIELD_SURNAME = "surnom";
@@ -627,8 +629,10 @@ public class UtilitaireLigue1 extends BaseResourceExtension {
 	}
 
 	public static boolean setResultat(String equipe1, String equipe2, boolean e1mieuxClassee, boolean importantE1,
-			boolean importantE2, boolean victoireE1, boolean matchNul, boolean victoireE2) throws VdocHelperException {
+			boolean importantE2, boolean victoireE1, boolean matchNul, boolean victoireE2, String score) throws VdocHelperException {
 
+		setDifferencesDeButsDansLesTroisClassements(equipe1, equipe2, score);
+		
 		// Les deux équipes saisies évoluent en Ligue 1
 		// Elles jouent toutes les deux un match
 		setNombreMatchsJouesPlusUn(equipe1);
@@ -893,6 +897,55 @@ public class UtilitaireLigue1 extends BaseResourceExtension {
 		boolean verifE2 = verif(equipe2);
 
 		return (verifE1 && verifE2);
+	}
+
+	private static void setDifferencesDeButsDansLesTroisClassements(String equipe1, String equipe2, String score) {
+		
+		String[] scoreTableau = score.split("-");
+		String nbButsEquipeDomicileString = scoreTableau[0];
+		String nbButsEquipeExterieurString = scoreTableau[1];
+		
+		Long nbButsMarquesEquipeDomicile = Long.parseLong(nbButsEquipeDomicileString);
+		Long nbButsMarquesEquipeExterieur = Long.parseLong(nbButsEquipeExterieurString);
+		
+		if (nbButsMarquesEquipeDomicile != null && nbButsMarquesEquipeExterieur != null) {
+			
+			Long differenceEnFaveurEquipeDomicile = nbButsMarquesEquipeDomicile - nbButsMarquesEquipeExterieur;
+			Long differenceEnFaveurEquipeExterieur = nbButsMarquesEquipeExterieur - nbButsMarquesEquipeDomicile;
+			
+			updateGlobalGoalAverage(TABLE_FIELD_DIFFERENCE_DE_BUTS, equipe1, equipe2, differenceEnFaveurEquipeDomicile, differenceEnFaveurEquipeExterieur);
+			updateHomeAndAwayGoalAverage(TABLE_FIELD_DIFFERENCE_DE_BUTS_DOMICILE, equipe1, TABLE_FIELD_DIFFERENCE_DE_BUTS_EXTERIEUR, equipe2, differenceEnFaveurEquipeDomicile, differenceEnFaveurEquipeExterieur);
+		}
+		
+	}
+
+	private static void updateHomeAndAwayGoalAverage(String tableFieldDifferenceDeButsDomicile, String equipe1,
+			String tableFieldDifferenceDeButsExterieur, String equipe2, Long differenceEnFaveurEquipeDomicile,
+			Long differenceEnFaveurEquipeExterieur) {
+		
+		try {
+			int differenceEquipe1ClassementDomicile = getStatInt(equipe1, tableFieldDifferenceDeButsDomicile);
+			setResourceEquipe(equipe1, tableFieldDifferenceDeButsDomicile, Long.valueOf(differenceEquipe1ClassementDomicile) + differenceEnFaveurEquipeDomicile);
+			int differenceEquipe2ClassementExterieur = getStatInt(equipe2, tableFieldDifferenceDeButsExterieur);
+			setResourceEquipe(equipe2, tableFieldDifferenceDeButsExterieur, Long.valueOf(differenceEquipe2ClassementExterieur) + differenceEnFaveurEquipeExterieur);
+			
+		} catch (VdocHelperException e) {
+			e.printStackTrace();
+		}
+	}
+
+	private static void updateGlobalGoalAverage(String field, String equipe1, String equipe2, Long differenceEnFaveurEquipeDomicile,
+			Long differenceEnFaveurEquipeExterieur) {
+		
+		try {
+			int differenceEquipe1 = getStatInt(equipe1, field);
+			setResourceEquipe(equipe1, field, Long.valueOf(differenceEquipe1) + differenceEnFaveurEquipeDomicile);
+			int differenceEquipe2 = getStatInt(equipe2, field);
+			setResourceEquipe(equipe2, field, Long.valueOf(differenceEquipe2) + differenceEnFaveurEquipeExterieur);
+			
+		} catch (VdocHelperException e) {
+			e.printStackTrace();
+		}
 	}
 
 	// LES SERIES
@@ -1844,7 +1897,7 @@ public class UtilitaireLigue1 extends BaseResourceExtension {
 				String c1 = (String) equipe1.getValue("classement");
 				String c2 = (String) equipe2.getValue("classement");
 
-				if (!StringUtils.isEmpty(c1) && !StringUtils.isEmpty(c2)) {
+				if (!isEmpty(c1) && !isEmpty(c2)) {
 					if (Integer.parseInt(c1) < Integer.parseInt(c2)) {
 						equipeMieuxClassee = e1;
 					} else {
@@ -1857,6 +1910,10 @@ public class UtilitaireLigue1 extends BaseResourceExtension {
 			e.printStackTrace();
 		}
 		return equipeMieuxClassee;
+	}
+	
+	public static boolean isEmpty(String string) {
+		return (string == null || string.isEmpty());
 	}
 
 	public static boolean getMatchImportant(String e1, String e2) {

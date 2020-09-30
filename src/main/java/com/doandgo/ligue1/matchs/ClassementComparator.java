@@ -5,7 +5,8 @@ import java.util.Map;
 
 /**
  * 
- * Classe utilisée pour classée les équipes dans les 3 classements selon leur nombre de points
+ * Classe utilisée pour classée les équipes dans les 3 classements selon leur
+ * nombre de points
  * 
  * @author Thomas CHARMES
  *
@@ -13,6 +14,7 @@ import java.util.Map;
 public class ClassementComparator implements Comparator<String> {
 
 	private Long classement;
+	private Long differenceButs;
 	private String name;
 
 	Map<String, Long> base;
@@ -25,12 +27,20 @@ public class ClassementComparator implements Comparator<String> {
 		return classement;
 	}
 
+	public Long getDifferenceButs() {
+		return differenceButs;
+	}
+
 	public String getName() {
 		return name;
 	}
 
 	public void setClassement(Long classement) {
 		this.classement = classement;
+	}
+
+	public void setDifferenceButs(Long differenceButs) {
+		this.differenceButs = differenceButs;
 	}
 
 	public void setName(String name) {
@@ -40,6 +50,7 @@ public class ClassementComparator implements Comparator<String> {
 	public ClassementComparator(Long classement, String name) {
 		this.classement = classement;
 		this.name = name;
+//		this.differenceButs = differenceButs;
 	}
 
 	@Override

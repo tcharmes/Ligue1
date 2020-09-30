@@ -2,7 +2,7 @@ package com.doandgo.ligue1.matchs;
 
 import java.util.Date;
 
-import com.doandgo.commons.utils.StringUtils;
+import com.doandgo.ligue1.utils.UtilitaireLigue1;
 
 public class Confrontation {
 
@@ -56,19 +56,19 @@ public class Confrontation {
 
 		Float nbConfrontations = 5F;
 
-		if (StringUtils.isEmpty(getRecent5())) {
+		if (UtilitaireLigue1.isEmpty(getRecent5())) {
 			nbConfrontations--;
 		}
-		if (StringUtils.isEmpty(getRecent4())) {
+		if (UtilitaireLigue1.isEmpty(getRecent4())) {
 			nbConfrontations--;
 		}
-		if (StringUtils.isEmpty(getRecent3())) {
+		if (UtilitaireLigue1.isEmpty(getRecent3())) {
 			nbConfrontations--;
 		}
-		if (StringUtils.isEmpty(getRecent2())) {
+		if (UtilitaireLigue1.isEmpty(getRecent2())) {
 			nbConfrontations--;
 		}
-		if (StringUtils.isEmpty(getRecent1())) {
+		if (UtilitaireLigue1.isEmpty(getRecent1())) {
 			nbConfrontations--;
 		}
 		return nbConfrontations;
@@ -78,7 +78,7 @@ public class Confrontation {
 
 		String[] equipes = this.match.split("-");
 
-		if (StringUtils.isEmpty(equipes[0])) {
+		if (UtilitaireLigue1.isEmpty(equipes[0])) {
 			return null;
 		}
 		return equipes[0];
@@ -86,19 +86,19 @@ public class Confrontation {
 
 	public String getSurnomEquipe2() {
 		String[] equipes = this.match.split("-");
-		if (StringUtils.isEmpty(equipes[1])) {
+		if (UtilitaireLigue1.isEmpty(equipes[1])) {
 			return null;
 		}
 		return equipes[1];
 	}
 
 	public Float getNbButsEquipe2Recent1() {
-		if (StringUtils.isEmpty(getRecent1())){
+		if (UtilitaireLigue1.isEmpty(getRecent1())){
 			return -1F;
 		}
 		String[] score = this.recent1.split("-");
 		for (String scoreEquipe : score) {
-			if (StringUtils.isEmpty(scoreEquipe)) {
+			if (UtilitaireLigue1.isEmpty(scoreEquipe)) {
 				return -1F;
 			}
 		}
@@ -106,12 +106,12 @@ public class Confrontation {
 	}
 
 	public Float getNbButsEquipe2Recent2() {
-		if (StringUtils.isEmpty(getRecent2())){
+		if (UtilitaireLigue1.isEmpty(getRecent2())){
 			return -1F;
 		}
 		String[] score = this.recent2.split("-");
 		for (String scoreEquipe : score) {
-			if (StringUtils.isEmpty(scoreEquipe)) {
+			if (UtilitaireLigue1.isEmpty(scoreEquipe)) {
 				return -1F;
 			}
 		}
@@ -119,12 +119,12 @@ public class Confrontation {
 	}
 
 	public Float getNbButsEquipe2Recent3() {
-		if (StringUtils.isEmpty(getRecent3())){
+		if (UtilitaireLigue1.isEmpty(getRecent3())){
 			return -1F;
 		}
 		String[] score = this.recent3.split("-");
 		for (String scoreEquipe : score) {
-			if (StringUtils.isEmpty(scoreEquipe)) {
+			if (UtilitaireLigue1.isEmpty(scoreEquipe)) {
 				return -1F;
 			}
 		}
@@ -132,12 +132,12 @@ public class Confrontation {
 	}
 
 	public Float getNbButsEquipe2Recent4() {
-		if (StringUtils.isEmpty(getRecent4())){
+		if (UtilitaireLigue1.isEmpty(getRecent4())){
 			return -1F;
 		}
 		String[] score = this.recent4.split("-");
 		for (String scoreEquipe : score) {
-			if (StringUtils.isEmpty(scoreEquipe)) {
+			if (UtilitaireLigue1.isEmpty(scoreEquipe)) {
 				return -1F;
 			}
 		}
@@ -145,12 +145,12 @@ public class Confrontation {
 	}
 
 	public Float getNbButsEquipe2Recent5() {
-		if (StringUtils.isEmpty(getRecent5())){
+		if (UtilitaireLigue1.isEmpty(getRecent5())){
 			return -1F;
 		}
 		String[] score = this.recent5.split("-");
 		for (String scoreEquipe : score) {
-			if (StringUtils.isEmpty(scoreEquipe)) {
+			if (UtilitaireLigue1.isEmpty(scoreEquipe)) {
 				return -1F;
 			}
 		}
@@ -158,12 +158,12 @@ public class Confrontation {
 	}
 
 	public Float getNbButsEquipe1Recent1() {
-		if (StringUtils.isEmpty(getRecent1())){
+		if (UtilitaireLigue1.isEmpty(getRecent1())){
 			return -1F;
 		}
 		String[] score = this.recent1.split("-");
 		for (String scoreEquipe : score) {
-			if (StringUtils.isEmpty(scoreEquipe)) {
+			if (UtilitaireLigue1.isEmpty(scoreEquipe)) {
 				return -1F;
 			}
 		}
@@ -171,12 +171,12 @@ public class Confrontation {
 	}
 
 	public Float getNbButsEquipe1Recent2() {
-		if (StringUtils.isEmpty(getRecent2())){
+		if (UtilitaireLigue1.isEmpty(getRecent2())){
 			return -1F;
 		}
 		String[] score = this.recent2.split("-");
 		for (String scoreEquipe : score) {
-			if (StringUtils.isEmpty(scoreEquipe)) {
+			if (UtilitaireLigue1.isEmpty(scoreEquipe)) {
 				return -1F;
 			}
 		}
@@ -184,12 +184,12 @@ public class Confrontation {
 	}
 
 	public Float getNbButsEquipe1Recent3() {
-		if (StringUtils.isEmpty(getRecent3())){
+		if (UtilitaireLigue1.isEmpty(getRecent3())){
 			return -1F;
 		}
 		String[] score = this.recent3.split("-");
 		for (String scoreEquipe : score) {
-			if (StringUtils.isEmpty(scoreEquipe)) {
+			if (UtilitaireLigue1.isEmpty(scoreEquipe)) {
 				return -1F;
 			}
 		}
@@ -197,12 +197,12 @@ public class Confrontation {
 	}
 
 	public Float getNbButsEquipe1Recent4() {
-		if (StringUtils.isEmpty(getRecent4())){
+		if (UtilitaireLigue1.isEmpty(getRecent4())){
 			return -1F;
 		}
 		String[] score = this.recent4.split("-");
 		for (String scoreEquipe : score) {
-			if (StringUtils.isEmpty(scoreEquipe)) {
+			if (UtilitaireLigue1.isEmpty(scoreEquipe)) {
 				return -1F;
 			}
 		}
@@ -210,12 +210,12 @@ public class Confrontation {
 	}
 
 	public Float getNbButsEquipe1Recent5() {
-		if (StringUtils.isEmpty(getRecent5())){
+		if (UtilitaireLigue1.isEmpty(getRecent5())){
 			return -1F;
 		}
 		String[] score = this.recent5.split("-");
 		for (String scoreEquipe : score) {
-			if (StringUtils.isEmpty(scoreEquipe)) {
+			if (UtilitaireLigue1.isEmpty(scoreEquipe)) {
 				return -1F;
 			}
 		}

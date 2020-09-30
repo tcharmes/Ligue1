@@ -7,16 +7,15 @@ import com.axemble.vdoc.sdk.interfaces.IResourceController;
 import com.axemble.vdoc.sdk.interfaces.IStorageResource;
 import com.axemble.vdoc.sdk.interfaces.IWorkflowInstance;
 import com.axemble.vdoc.sdk.modules.IWorkflowModule;
-import com.doandgo.commons.utils.StringUtils;
 import com.doandgo.ligue1.utils.UtilitaireLigue1;
 import com.doandgo.moovapps.exceptions.VdocHelperException;
-import com.triactive.jdo.store.mapping.NullValueException;
 
 /**
  * 
- * Classe d'extension positionnée sur le sous-formulaire de l'unique étape du processus "Match"
- * Vérifie que les données du formulaire sont cohérentes, met à jour les données des classements
- * et des confrontations dans les tables correspondantes
+ * Classe d'extension positionnée sur le sous-formulaire de l'unique étape du
+ * processus "Match" Vérifie que les données du formulaire sont cohérentes, met
+ * à jour les données des classements et des confrontations dans les tables
+ * correspondantes
  * 
  * @author Thomas CHARMES
  *
@@ -26,7 +25,8 @@ public class Match extends BaseDocumentExtension {
 	private static final long serialVersionUID = 1L;
 
 	/**
-	 * Vérifie la cohérence des données du formulaire (nombre de cases cochées, surnoms des équipes)
+	 * Vérifie la cohérence des données du formulaire (nombre de cases cochées,
+	 * surnoms des équipes)
 	 */
 	@Override
 	public boolean onBeforeSave() {
@@ -35,15 +35,15 @@ public class Match extends BaseDocumentExtension {
 		String e1 = (String) wi.getValue(UtilitaireLigue1.FORM_FIELD_SURNOM_EQUIPE_DOMICILE);
 		String e2 = (String) wi.getValue(UtilitaireLigue1.FORM_FIELD_SURNOM_EQUIPE_EXTERIEUR);
 		String score = (String) wi.getValue(UtilitaireLigue1.FORM_FIELD_SCORE);
-		if (!StringUtils.isEmpty(e1) && !StringUtils.isEmpty(e2) && !StringUtils.isEmpty(score)) {
+		if (!UtilitaireLigue1.isEmpty(e1) && !UtilitaireLigue1.isEmpty(e2) && !UtilitaireLigue1.isEmpty(score)) {
 			return checkAllFieldsAreOK();
 		}
 		return super.onBeforeSave();
 	}
 
 	/**
-	 * Coche les cases sur le classement, l'importance, et le résultat en fonction des informations
-	 * renseignées dans le formulaire (surnoms des équipes, score)
+	 * Coche les cases sur le classement, l'importance, et le résultat en fonction
+	 * des informations renseignées dans le formulaire (surnoms des équipes, score)
 	 */
 	@Override
 	public void onPropertyChanged(IProperty property) {
@@ -57,9 +57,9 @@ public class Match extends BaseDocumentExtension {
 			String e1 = (String) wi.getValue(UtilitaireLigue1.FORM_FIELD_SURNOM_EQUIPE_DOMICILE);
 			String e2 = (String) wi.getValue(UtilitaireLigue1.FORM_FIELD_SURNOM_EQUIPE_EXTERIEUR);
 
-			if (!StringUtils.isEmpty(e1) && !StringUtils.isEmpty(e2)) {
+			if (!UtilitaireLigue1.isEmpty(e1) && !UtilitaireLigue1.isEmpty(e2)) {
 				String equipeMieuxClassee = UtilitaireLigue1.getEquipeMieuxClassee(e1, e2);
-				if (!StringUtils.isEmpty(equipeMieuxClassee)) {
+				if (!UtilitaireLigue1.isEmpty(equipeMieuxClassee)) {
 					if (equipeMieuxClassee.equals(e1)) {
 						wi.setValue(UtilitaireLigue1.FORM_FIELD_CHECK_BOX_EQUIPE_DOMICILE_MIEUX_CLASSEE, true);
 					} else {
@@ -86,7 +86,7 @@ public class Match extends BaseDocumentExtension {
 
 		if (property.getName().equals(UtilitaireLigue1.FORM_FIELD_SCORE)) {
 			String score = (String) wi.getValue(UtilitaireLigue1.FORM_FIELD_SCORE);
-			if (StringUtils.isEmpty(score)) {
+			if (UtilitaireLigue1.isEmpty(score)) {
 				getResourceController().alert("Merci de saisir un score.");
 			} else {
 				if (!UtilitaireLigue1.isScoreWellFormed(score)) {
@@ -117,9 +117,8 @@ public class Match extends BaseDocumentExtension {
 	}
 
 	/**
-	 * Comptabilise le match
-	 * Ou réinitialise la saison
-	 * Ou génère le rapport détaillé de la rencontre
+	 * Comptabilise le match Ou réinitialise la saison Ou génère le rapport détaillé
+	 * de la rencontre
 	 */
 	@Override
 	public boolean onBeforeSubmit(IAction action) {
@@ -141,7 +140,8 @@ public class Match extends BaseDocumentExtension {
 	}
 
 	/**
-	 * Vérifie la cohérence des données du formulaire (nombre de cases cochées, surnoms des équipes)
+	 * Vérifie la cohérence des données du formulaire (nombre de cases cochées,
+	 * surnoms des équipes)
 	 * 
 	 * @return
 	 */
@@ -152,7 +152,7 @@ public class Match extends BaseDocumentExtension {
 				String Equipe1 = (String) wi.getValue(UtilitaireLigue1.FORM_FIELD_SURNOM_EQUIPE_DOMICILE);
 				String Equipe2 = (String) wi.getValue(UtilitaireLigue1.FORM_FIELD_SURNOM_EQUIPE_EXTERIEUR);
 
-				if (!StringUtils.isEmpty(Equipe1) && !StringUtils.isEmpty(Equipe2)) {
+				if (!UtilitaireLigue1.isEmpty(Equipe1) && !UtilitaireLigue1.isEmpty(Equipe2)) {
 
 					IStorageResource resourceEquipe1 = UtilitaireLigue1.getResourceEquipe(Equipe1);
 					IStorageResource resourceEquipe2 = UtilitaireLigue1.getResourceEquipe(Equipe2);
@@ -218,7 +218,8 @@ public class Match extends BaseDocumentExtension {
 	}
 
 	/**
-	 * Remet à zéro la totalité de la table "Equipes" pour redémarrer une nouvelle saison
+	 * Remet à zéro la totalité de la table "Equipes" pour redémarrer une nouvelle
+	 * saison
 	 * 
 	 * @return
 	 */
@@ -248,8 +249,10 @@ public class Match extends BaseDocumentExtension {
 	}
 
 	/**
-	 * Vérifie que les données du formulaire sont cohérentes, met à jour les données des classements
-	 * et des confrontations dans les tables correspondantes en fonction des cases cochées
+	 * Vérifie que les données du formulaire sont cohérentes, met à jour les données
+	 * des classements et des confrontations dans les tables correspondantes en
+	 * fonction des cases cochées
+	 * 
 	 * @param wi
 	 * @param controller
 	 * @param wm
@@ -263,7 +266,7 @@ public class Match extends BaseDocumentExtension {
 				String Equipe1 = (String) wi.getValue(UtilitaireLigue1.FORM_FIELD_SURNOM_EQUIPE_DOMICILE);
 				String Equipe2 = (String) wi.getValue(UtilitaireLigue1.FORM_FIELD_SURNOM_EQUIPE_EXTERIEUR);
 
-				if (!StringUtils.isEmpty(Equipe1) && !StringUtils.isEmpty(Equipe2)) {
+				if (!UtilitaireLigue1.isEmpty(Equipe1) && !UtilitaireLigue1.isEmpty(Equipe2)) {
 
 					IStorageResource resourceEquipe1 = UtilitaireLigue1.getResourceEquipe(Equipe1);
 					IStorageResource resourceEquipe2 = UtilitaireLigue1.getResourceEquipe(Equipe2);
@@ -315,17 +318,31 @@ public class Match extends BaseDocumentExtension {
 					Object importantE1 = wi.getValue(UtilitaireLigue1.FORM_FIELD_CHECK_BOX_IMPORTANT_EQUIPE_DOMICILE);
 					boolean matchImportantEquipe2 = false;
 					Object importantE2 = wi.getValue(UtilitaireLigue1.FORM_FIELD_CHECK_BOX_IMPORTANT_EQUIPE_EXTERIEUR);
+					String score = (String) wi.getValue(UtilitaireLigue1.FORM_FIELD_SCORE);
 
-					if (e1mieuxClassee != null && importantE1 != null && importantE2 != null) {
+					if (e1mieuxClassee != null && importantE1 != null && importantE2 != null && score != null
+							&& !score.isEmpty()) {
 
+						if (!UtilitaireLigue1.isScoreWellFormed(score)) {
+							controller.alert("Le format du score doit être x-x avec x un entier compris entre 0 et 9!");
+						}
 						equipe1mieuxClassee = (boolean) e1mieuxClassee;
 						matchImportantEquipe1 = (boolean) importantE1;
 						matchImportantEquipe2 = (boolean) importantE2;
 
 						if (UtilitaireLigue1.verifGenerale()) {
 
-							UtilitaireLigue1.setResultat(Equipe1, Equipe2, equipe1mieuxClassee, matchImportantEquipe1,
-									matchImportantEquipe2, victoireEquipe1, nul, victoireEquipe2);
+							try {
+								wm.beginTransaction();
+								UtilitaireLigue1.setResultat(Equipe1, Equipe2, equipe1mieuxClassee,
+										matchImportantEquipe1, matchImportantEquipe2, victoireEquipe1, nul,
+										victoireEquipe2, score);
+								wm.commitTransaction();
+							} catch (Exception e) {
+								wm.rollbackTransaction();
+								return false;
+							}
+
 						} else {
 							controller.alert("Attention ! Il y a une incohérence dans les chiffres du tableau ! ");
 							return false;
@@ -342,9 +359,12 @@ public class Match extends BaseDocumentExtension {
 							return false;
 						}
 					}
-					String score = (String) wi.getValue(UtilitaireLigue1.FORM_FIELD_SCORE);
+
 					String scoreInverse = null;
-					if (UtilitaireLigue1.isScoreWellFormed(score)) {
+
+					try {
+
+						wm.beginTransaction();
 
 						IStorageResource confrontation = UtilitaireLigue1
 								.getResourceConfrontation(Equipe1 + "-" + Equipe2);
@@ -364,11 +384,6 @@ public class Match extends BaseDocumentExtension {
 										.getValue(UtilitaireLigue1.TABLE_CONFRONTATIONS_FIELD_RECENT_3);
 								String recent4 = (String) confrontation
 										.getValue(UtilitaireLigue1.TABLE_CONFRONTATIONS_FIELD_RECENT_4);
-
-								if (StringUtils.isEmpty(recent1) || StringUtils.isEmpty(recent2)
-										|| StringUtils.isEmpty(recent3) || StringUtils.isEmpty(recent4)) {
-									throw new NullValueException(recent1 + recent2 + recent3 + recent4);
-								}
 
 								confrontation.setValue(UtilitaireLigue1.TABLE_CONFRONTATIONS_FIELD_RECENT_5, recent4);
 								confrontation.setValue(UtilitaireLigue1.TABLE_CONFRONTATIONS_FIELD_RECENT_4, recent3);
@@ -390,11 +405,6 @@ public class Match extends BaseDocumentExtension {
 							String recent4 = (String) confrontation
 									.getValue(UtilitaireLigue1.TABLE_CONFRONTATIONS_FIELD_RECENT_4);
 
-							if (StringUtils.isEmpty(recent1) || StringUtils.isEmpty(recent2)
-									|| StringUtils.isEmpty(recent3) || StringUtils.isEmpty(recent4)) {
-								throw new NullValueException(recent1 + recent2 + recent3 + recent4);
-							}
-
 							confrontation.setValue(UtilitaireLigue1.TABLE_CONFRONTATIONS_FIELD_RECENT_5, recent4);
 							confrontation.setValue(UtilitaireLigue1.TABLE_CONFRONTATIONS_FIELD_RECENT_4, recent3);
 							confrontation.setValue(UtilitaireLigue1.TABLE_CONFRONTATIONS_FIELD_RECENT_3, recent2);
@@ -403,12 +413,17 @@ public class Match extends BaseDocumentExtension {
 						}
 
 						confrontation.save(wm.getSysadminContext());
+
+						wm.commitTransaction();
+					} catch (NullConfrontationException e) {
+						wm.rollbackTransaction();
+						return false;
 					}
 				} else {
 					controller.alert("Attention ! L'une des deux équipe n'est pas renseignée ! ");
 					return false;
 				}
-			} catch (VdocHelperException | NullConfrontationException e) {
+			} catch (VdocHelperException e) {
 				e.getMessage();
 				e.printStackTrace();
 			}
