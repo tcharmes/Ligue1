@@ -19,6 +19,12 @@ import com.axemble.vdoc.sdk.interfaces.IWorkflowInstance;
 import com.doandgo.ligue1.utils.UtilitaireLigue1;
 import com.doandgo.moovapps.exceptions.VdocHelperException;
 
+/**
+ * Classe qui génère le rapport du match dans le dossier "C:/perso/Ligue1"
+ * 
+ * @author Thomas CHARMES
+ *
+ */
 public class GenerateRapportStatistiques extends BaseDocumentExtension {
 
 	private static final long serialVersionUID = 1L;
@@ -1524,7 +1530,7 @@ public class GenerateRapportStatistiques extends BaseDocumentExtension {
 		stats.put("Moyenne de buts par match", moyenneButsMatch + " buts");
 		stats.put("Moyenne de buts par match de l'équipe " + e1, moyenneButsDomicile + " buts");
 
-		MoyenneButsComparator comparator = new MoyenneButsComparator(stats);
+		AverageScoredGoalsComparator comparator = new AverageScoredGoalsComparator(stats);
 		TreeMap<String, String> mapTree = new TreeMap<String, String>(comparator);
 		mapTree.putAll(stats);
 

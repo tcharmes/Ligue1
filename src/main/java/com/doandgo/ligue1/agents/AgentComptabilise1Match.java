@@ -23,9 +23,8 @@ import com.axemble.vdoc.sdk.modules.IDirectoryModule;
 import com.axemble.vdoc.sdk.modules.IProjectModule;
 import com.axemble.vdoc.sdk.modules.IWorkflowModule;
 import com.axemble.vdoc.sdk.utils.Logger;
-import com.doandgo.commons.utils.StringUtils;
-import com.doandgo.ligue1.matchs.ClassementComparator;
 import com.doandgo.ligue1.matchs.Match;
+import com.doandgo.ligue1.matchs.StandingComparator;
 import com.doandgo.ligue1.utils.UtilitaireLigue1;
 import com.doandgo.moovapps.exceptions.VdocHelperException;
 import com.doandgo.moovapps.kpi.util.KPIUtil;
@@ -35,6 +34,7 @@ import com.doandgo.moovapps.utils.VdocHelper;
 /**
  * Comptabilise les documents process correspondants à des matchs en enregistrant les données liées
  * aux résultats dans les tables "Equipes" et "Confrontations"
+ * Les documents process à comptabiliser par cet agent sont ceux pour lesquels la case "Comptabilisé ?" n'est pas cochée
  * 
  * @author Thomas CHARMES
  */
@@ -170,7 +170,7 @@ public class AgentComptabilise1Match extends BaseAgent {
 				return;
 			}
 
-			if (!comptabilise && ! StringUtils.isEmpty(score)) {
+			if (!comptabilise && ! UtilitaireLigue1.isEmpty(score)) {
 
 				boolean executeMatch = Match.checkAllFieldsAreOKAndExecuteMatch(wi, controller, wm);
 
@@ -212,97 +212,20 @@ public class AgentComptabilise1Match extends BaseAgent {
 				reportError("La table ne contient aucune équipe. Tu peux t'inquiéter...");
 				return;
 			}
-			
-			Map<String, Long> ratiosEquipes = new HashMap<String, Long>();
-			ClassementComparator comparator = new ClassementComparator(ratiosEquipes);
-			TreeMap<String, Long> maptree = new TreeMap<String, Long>(comparator);
 
-			for (IStorageResource equipe : equipes) {
+			updateAllStanding(wm, equipes, UtilitaireLigue1.TABLE_FIELD_NOMBRE_POINTS,
+					UtilitaireLigue1.TABLE_FIELD_DIFFERENCE_DE_BUTS, "classement");
 
-				String surnom = (String) equipe.getValue("surnom");
-				Long nbPoints = (Long) equipe.getValue(UtilitaireLigue1.TABLE_FIELD_NOMBRE_POINTS);
-				
-				ClassementComparator team = new ClassementComparator(nbPoints, surnom);
-				ratiosEquipes.put(surnom, team.getClassement()); 
-
-			}
-			
-			maptree.putAll(ratiosEquipes);
-			Map<String, String> classementDefinitif = new HashMap<String, String>();
-			int i = 1;
-			for (Entry<String, Long> entry : maptree.entrySet()) {
-				classementDefinitif.put(String.valueOf(i), entry.getKey());
-				i++;
-			}
-			
-			for (Entry<String, String> classement : classementDefinitif.entrySet()) {
-				
-				IStorageResource equipe = UtilitaireLigue1.getResourceEquipe(classement.getValue());
-				equipe.setValue("classement", classement.getKey());
-				equipe.save(wm.getSysadminContext());
-			}
-			
 			reportInfo("Le classement général a bien été mis à jour.");
-			
-			
-			
-			Map<String, Long> ratiosEquipesDom = new HashMap<String, Long>();
-			ClassementComparator comparatorDom = new ClassementComparator(ratiosEquipesDom);
-			TreeMap<String, Long> maptreedom = new TreeMap<String, Long>(comparatorDom);
-			
-			for (IStorageResource equipe : equipes) {
 
-				String surnom = (String) equipe.getValue("surnom");
-				Long nbPointsDom = (Long) equipe.getValue(UtilitaireLigue1.TABLE_FIELD_NOMBRE_POINTS_DOMICILE);
-				
-				ClassementComparator team = new ClassementComparator(nbPointsDom, surnom);
-				ratiosEquipesDom.put(surnom, team.getClassement()); 
-
-			}
-			
-			maptreedom.putAll(ratiosEquipesDom);
-			Map<String, String> classementDefinitifDom = new HashMap<String, String>();
-			int j = 1;
-			for (Entry<String, Long> entry : maptreedom.entrySet()) {
-				classementDefinitifDom.put(String.valueOf(j), entry.getKey());
-				j++;
-			}
-			
-			for (Entry<String, String> classement : classementDefinitifDom.entrySet()) {
-				
-				IStorageResource equipe = UtilitaireLigue1.getResourceEquipe(classement.getValue());
-				equipe.setValue("classementDomicile", classement.getKey());
-				equipe.save(wm.getSysadminContext());
-			}
+			updateAllStanding(wm, equipes, UtilitaireLigue1.TABLE_FIELD_NOMBRE_POINTS_DOMICILE,
+					UtilitaireLigue1.TABLE_FIELD_DIFFERENCE_DE_BUTS_DOMICILE, "classementDomicile");
 			
 			reportInfo("Le classement domicile a bien été mis à jour.");
 			
-			
-			Map<String, Long> ratiosEquipesExt = new HashMap<String, Long>();
-			ClassementComparator comparatorExt = new ClassementComparator(ratiosEquipesExt);
-			TreeMap<String, Long> maptreeExt = new TreeMap<String, Long>(comparatorExt);
-			
-			for (IStorageResource equipe : equipes) {
+			updateAllStanding(wm, equipes, UtilitaireLigue1.TABLE_FIELD_NOMBRE_POINTS_EXTERIEUR,
+					UtilitaireLigue1.TABLE_FIELD_DIFFERENCE_DE_BUTS_EXTERIEUR, "classementExterieur");
 
-				String surnom = (String) equipe.getValue("surnom");
-				Long nbPointsExt = (Long) equipe.getValue(UtilitaireLigue1.TABLE_FIELD_NOMBRE_POINTS_EXTERIEUR);
-				
-				ClassementComparator team = new ClassementComparator(nbPointsExt, surnom);
-				ratiosEquipesExt.put(surnom, team.getClassement()); 
-			}
-			maptreeExt.putAll(ratiosEquipesExt);
-			Map<String, String> classementDefinitifExt = new HashMap<String, String>();
-			int k = 1;
-			for (Entry<String, Long> entry : maptreeExt.entrySet()) {
-				classementDefinitifExt.put(String.valueOf(k), entry.getKey());
-				k++;
-			}
-			
-			for (Entry<String, String> classement : classementDefinitifExt.entrySet()) {
-				IStorageResource equipe = UtilitaireLigue1.getResourceEquipe(classement.getValue());
-				equipe.setValue("classementExterieur", classement.getKey());
-				equipe.save(wm.getSysadminContext());
-			}
 			reportInfo("Le classement extérieur a bien été mis à jour.");
 
 		} catch (VdocHelperException e) {
@@ -312,6 +235,40 @@ public class AgentComptabilise1Match extends BaseAgent {
 		Modules.releaseModule(wm);
 		Modules.releaseModule(pm);
 		Modules.releaseModule(dm);
+	}
+	
+	private static void updateAllStanding(IWorkflowModule wm, Collection<IStorageResource> equipes, String fieldNbPoints,
+			String fieldGoalAverage, String standingType) throws VdocHelperException {
+
+		Map<String, Long[]> ratiosEquipes = new HashMap<String, Long[]>();
+		StandingComparator comparator = new StandingComparator(ratiosEquipes);
+		TreeMap<String, Long[]> maptree = new TreeMap<String, Long[]>(comparator);
+
+		for (IStorageResource equipe : equipes) {
+
+			String surnom = (String) equipe.getValue("surnom");
+			Long nbPoints = (Long) equipe.getValue(fieldNbPoints);
+			Long differenceButs = (Long) equipe.getValue(fieldGoalAverage);
+
+			Long[] stats = { nbPoints, differenceButs };
+			ratiosEquipes.put(surnom, stats);
+
+		}
+
+		maptree.putAll(ratiosEquipes);
+		Map<String, String> classementDefinitif = new HashMap<String, String>();
+		int i = 1;
+		for (Entry<String, Long[]> entry : maptree.entrySet()) {
+			classementDefinitif.put(String.valueOf(i), entry.getKey());
+			i++;
+		}
+
+		for (Entry<String, String> classement : classementDefinitif.entrySet()) {
+
+			IStorageResource equipe = UtilitaireLigue1.getResourceEquipe(classement.getValue());
+			equipe.setValue(standingType, classement.getKey());
+			equipe.save(wm.getSysadminContext());
+		}
 	}
 
 	public static void reportInfo(String log) {

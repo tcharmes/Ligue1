@@ -6,7 +6,7 @@ import java.util.Map;
 
 /**
  * 
- * Classe utilisée pour classée les équipes dans les 3 classements selon leur nombre de points
+ * Classe utilisée pour classer les équipes selon un pourcentage.
  * 
  * @author Thomas CHARMES
  *

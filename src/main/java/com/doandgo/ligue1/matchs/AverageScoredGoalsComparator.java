@@ -6,19 +6,19 @@ import java.util.Map;
 
 /**
  * 
- * Classe utilisée pour classée les équipes dans les 3 classements selon leur nombre de points
+ * Classe utilisée pour classer les équipes selon leur moyenne de buts marqués.
  * 
  * @author Thomas CHARMES
  *
  */
-public class MoyenneButsComparator implements Comparator<String> {
+public class AverageScoredGoalsComparator implements Comparator<String> {
 
 	private String name;
 	private String moyenne;
 
 	Map<String, String> base;
 
-	public MoyenneButsComparator(Map<String, String> base) {
+	public AverageScoredGoalsComparator(Map<String, String> base) {
 		this.base = base;
 	}
 
@@ -38,7 +38,7 @@ public class MoyenneButsComparator implements Comparator<String> {
 		this.name = name;
 	}
 
-	public MoyenneButsComparator(String name, String moyenne) {
+	public AverageScoredGoalsComparator(String name, String moyenne) {
 		this.moyenne = moyenne;
 		this.name = name;
 	}
@@ -62,7 +62,7 @@ public class MoyenneButsComparator implements Comparator<String> {
 		stats.put("MHSC", "1.5 buts");
 		stats.put("OGCN", "0.75 buts");
 		stats.put("PSG", "10.1 buts");
-		MoyenneButsComparator p = new MoyenneButsComparator(stats);
+		AverageScoredGoalsComparator p = new AverageScoredGoalsComparator(stats);
 		System.out.println(p.compare("MHSC", "PSG"));
 		System.out.println(p.compare("OGCN", "PSG"));
 		System.out.println(p.compare("MHSC", "OGCN"));
