@@ -344,18 +344,10 @@ public class Match extends BaseDocumentExtension {
 							}
 
 						} else {
-							controller.alert("Attention ! Il y a une incohérence dans les chiffres du tableau ! ");
 							return false;
 						}
 
-						if (!UtilitaireLigue1.verif(Equipe1)) {
-							controller.alert(
-									"Attention ! La dernière modification a entraîné une incohérence dans les chiffres du tableau de l'équipe 1 ! (celle qui évolue à domicile)");
-							return false;
-						}
-						if (!UtilitaireLigue1.verif(Equipe2)) {
-							controller.alert(
-									"Attention ! La dernière modification a entraîné une incohérence dans les chiffres du tableau de l'équipe 2 ! (celle qui évolue à l'extérieur)");
+						if (!UtilitaireLigue1.verif(Equipe1) || !UtilitaireLigue1.verif(Equipe2)) {
 							return false;
 						}
 					}

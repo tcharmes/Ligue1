@@ -160,6 +160,8 @@ public class AgentComptabilise1Match extends BaseAgent {
 
 			Boolean comptabilise = (Boolean) wi.getValue(UtilitaireLigue1.FORM_FIELD_CHECK_BOX_COMPTABILISE);
 			String score = (String) wi.getValue(UtilitaireLigue1.FORM_FIELD_SCORE);
+			String e1 = (String) wi.getValue(UtilitaireLigue1.FORM_FIELD_SURNOM_EQUIPE_DOMICILE);
+			String e2 = (String) wi.getValue(UtilitaireLigue1.FORM_FIELD_SURNOM_EQUIPE_EXTERIEUR);
 
 			IResourceController controller = wm.getResourceController(wi);
 
@@ -173,7 +175,7 @@ public class AgentComptabilise1Match extends BaseAgent {
 				boolean executeMatch = Match.checkAllFieldsAreOKAndExecuteMatch(wi, controller, wm);
 
 				if (!executeMatch) {
-					reportError("Erreur à la comptabilisation du match !");
+					reportError("Erreur à la comptabilisation du match : " + e1 + " - " + e2);
 					return;
 				}
 

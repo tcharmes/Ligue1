@@ -159,7 +159,7 @@ public class UtilitaireLigue1 extends BaseResourceExtension {
 	public static final String TABLE_CONFRONTATIONS_FIELD_RECENT_2 = "Recent2";
 	public static final String TABLE_CONFRONTATIONS_FIELD_RECENT_1 = "Recent1";
 	public static final String TABLE_CONFRONTATIONS_FIELD_MATCH = "match";
-	public static final String TABLE_CONFRONTATIONS_FIELD_DATE_LAST_MODIFICATION = "sys_ModificationDate";//TODO
+	public static final String TABLE_CONFRONTATIONS_FIELD_DATE_LAST_MODIFICATION = "sys_ModificationDate";
 	
 	public static final String TABLE_STATISTIQUES_FIELD_MATCH = "match";
 	public static final String TABLE_STATISTIQUES_FIELD_MOYENNE_BUTS_DOMICILE = "MoyButsEquipeDom";
@@ -706,10 +706,6 @@ public class UtilitaireLigue1 extends BaseResourceExtension {
 			addSerieEnCoursDomicile(equipe1, "V");
 			addSerieEnCoursExterieur(equipe2, "D");
 			// gere les totaux V:3 N:1 D:1
-			setSerieVEnCours(equipe1);
-			setSerieDEnCours(equipe2);
-			setSerieVenCoursDomicile(equipe1);
-			setSerieDenCoursExterieur(equipe2);
 			setNombreMatchsGagnesPlusUn(equipe1);
 			setNombreMatchsGagnesDomicilePlusUn(equipe1);
 			setNombreMatchsPerdusPlusUn(equipe2);
@@ -733,7 +729,6 @@ public class UtilitaireLigue1 extends BaseResourceExtension {
 				setNombreMatchsGagnesContreEquipeMieuxClasseeDomicilePlusUn(equipe1);
 				setNombreMatchsPerdusContreEquipeMoinsBienClasseeExterieurPlusUn(equipe2);
 			}
-
 			// Si E1 gagne et le match est important pour lui :
 			// E1 nombre de matchs gagnés importants +1 gen et dom
 			if (importantE1) {
@@ -771,10 +766,6 @@ public class UtilitaireLigue1 extends BaseResourceExtension {
 				addSerieEnCoursDomicile(equipe1, "D");
 				addSerieEnCoursExterieur(equipe2, "V");
 				// gere les V:3 N:1 D:1
-				setSerieDEnCours(equipe1);
-				setSerieVEnCours(equipe2);
-				setSerieDenCoursDomicile(equipe1);
-				setSerieVenCoursExterieur(equipe2);
 				setNombreMatchsGagnesPlusUn(equipe2);
 				setNombreMatchsGagnesExterieurPlusUn(equipe2);
 				setNombreMatchsPerdusPlusUn(equipe1);
@@ -798,7 +789,6 @@ public class UtilitaireLigue1 extends BaseResourceExtension {
 					setNombreMatchsGagnesContreEquipeMieuxClasseeExterieurPlusUn(equipe2);
 					setNombreMatchsPerdusContreEquipeMoinsBienClasseeDomicilePlusUn(equipe1);
 				}
-
 				// Si E2 gagne et le match est important pour lui :
 				// E2 nombre de matchs gagnés importants +1 gen et ext
 				if (importantE2) {
@@ -837,15 +827,10 @@ public class UtilitaireLigue1 extends BaseResourceExtension {
 				addSerieEnCoursDomicile(equipe1, "N");
 				addSerieEnCoursExterieur(equipe2, "N");
 				// gere les V:3 N:1 D:1
-				setSerieNEnCours(equipe1);
-				setSerieNEnCours(equipe2);
-				setSerieNenCoursDomicile(equipe1);
-				setSerieNenCoursExterieur(equipe2);
 				setNombreMatchsNulsPlusUn(equipe1);
 				setNombreMatchsNulsPlusUn(equipe2);
 				setNombreMatchsNulsExterieurPlusUn(equipe2);
 				setNombreMatchsNulsDomicilePlusUn(equipe1);
-
 				// Si E2 est mieux classée :
 				// E2 nombre matchs nuls contre moins bien classée +1 gen et ext
 				// E1 nombre matchs nuls contre mieux classée +1 gen et dom
@@ -893,6 +878,11 @@ public class UtilitaireLigue1 extends BaseResourceExtension {
 			}
 
 		}
+		setSerieEnCours(equipe1);
+		setSerieEnCours(equipe2);
+		setSerieEnCoursDomicile(equipe1);
+		setSerieEnCoursExterieur(equipe2);
+		
 		boolean verifE1 = verif(equipe1);
 		boolean verifE2 = verif(equipe2);
 
@@ -998,187 +988,164 @@ public class UtilitaireLigue1 extends BaseResourceExtension {
 
 	}
 
-	/**
-	 * Analyse les 5 derniers résultats et compte le nombre de nuls Exemple :
-	 * "VVDND" --> 1 Cette méthode est appelée après modification d'un résultat de
-	 * match
-	 * 
-	 * @param equipe
-	 */
-	private static void setSerieNEnCours(String equipe) throws VdocHelperException {
+	private static void setSerieEnCours(String equipe) throws VdocHelperException {
 
-		int countNombreMatchsNulsSurLes5DerniersMatchs = 0;
+		Long countNombreVictoiresConsecutives = 0L;
+		Long countNombreNulsConsecutifs = 0L;
+		Long countNombreDefaitesConsecutives = 0L;
+		Boolean isAWinningStreakSeries = false;
+		Boolean isADrawStreakSeries = false;
+		Boolean isALoosingStreakSeries = false;
+		
+		if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_1).equals("V")) {
+			isAWinningStreakSeries = true;
+			countNombreVictoiresConsecutives++;
+			setResourceEquipe(equipe, TABLE_FIELD_SERIE_N_EN_COURS, 0L);
+			setResourceEquipe(equipe, TABLE_FIELD_SERIE_D_EN_COURS, 0L);
+		}
+		
+		if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_1).equals("N")) {
+			isADrawStreakSeries = true;
+			countNombreNulsConsecutifs++;
+			setResourceEquipe(equipe, TABLE_FIELD_SERIE_V_EN_COURS, 0L);
+			setResourceEquipe(equipe, TABLE_FIELD_SERIE_D_EN_COURS, 0L);
+		}
+		
+		if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_1).equals("D")) {
+			isALoosingStreakSeries = true;
+			countNombreDefaitesConsecutives++;
+			setResourceEquipe(equipe, TABLE_FIELD_SERIE_V_EN_COURS, 0L);
+			setResourceEquipe(equipe, TABLE_FIELD_SERIE_N_EN_COURS, 0L);
+		}
+		
+		if (isAWinningStreakSeries) {
+			updateSerie(equipe, TABLE_FIELD_SERIE_V_EN_COURS, countNombreVictoiresConsecutives, "V");
+		}
+		
+		if (isADrawStreakSeries) {
+			updateSerie(equipe, TABLE_FIELD_SERIE_N_EN_COURS, countNombreNulsConsecutifs, "N");
+		}
+		
+		if (isALoosingStreakSeries) {
+			updateSerie(equipe, TABLE_FIELD_SERIE_D_EN_COURS, countNombreDefaitesConsecutives, "D");
+		}
+	}
+	
+	private static void setSerieEnCoursDomicile(String equipe) throws VdocHelperException {
 
-		if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_1).equals("N"))
-			countNombreMatchsNulsSurLes5DerniersMatchs++;
-		if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_2).equals("N"))
-			countNombreMatchsNulsSurLes5DerniersMatchs++;
-		if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_3).equals("N"))
-			countNombreMatchsNulsSurLes5DerniersMatchs++;
-		if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_4).equals("N"))
-			countNombreMatchsNulsSurLes5DerniersMatchs++;
-		if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_5).equals("N"))
-			countNombreMatchsNulsSurLes5DerniersMatchs++;
+		Long countNombreVictoiresConsecutives = 0L;
+		Long countNombreNulsConsecutifs = 0L;
+		Long countNombreDefaitesConsecutives = 0L;
+		Boolean isAWinningStreakSeries = false;
+		Boolean isADrawStreakSeries = false;
+		Boolean isALoosingStreakSeries = false;
+		
+		if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_1_DOMICILE).equals("V")) {
+			isAWinningStreakSeries = true;
+			countNombreVictoiresConsecutives++;
+			setResourceEquipe(equipe, TABLE_FIELD_SERIE_N_EN_COURS_DOMICILE, 0L);
+			setResourceEquipe(equipe, TABLE_FIELD_SERIE_D_EN_COURS_DOMICILE, 0L);
+		}
+		
+		if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_1_DOMICILE).equals("N")) {
+			isADrawStreakSeries = true;
+			countNombreNulsConsecutifs++;
+			setResourceEquipe(equipe, TABLE_FIELD_SERIE_V_EN_COURS_DOMICILE, 0L);
+			setResourceEquipe(equipe, TABLE_FIELD_SERIE_D_EN_COURS_DOMICILE, 0L);
+		}
+		
+		if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_1_DOMICILE).equals("D")) {
+			isALoosingStreakSeries = true;
+			countNombreDefaitesConsecutives++;
+			setResourceEquipe(equipe, TABLE_FIELD_SERIE_V_EN_COURS_DOMICILE, 0L);
+			setResourceEquipe(equipe, TABLE_FIELD_SERIE_N_EN_COURS_DOMICILE, 0L);
+		}
+		
+		if (isAWinningStreakSeries) {
+			updateSerie(equipe, TABLE_FIELD_SERIE_V_EN_COURS_DOMICILE, countNombreVictoiresConsecutives, "V");
+		}
+		
+		if (isADrawStreakSeries) {
+			updateSerie(equipe, TABLE_FIELD_SERIE_N_EN_COURS_DOMICILE, countNombreNulsConsecutifs, "N");
+		}
+		
+		if (isALoosingStreakSeries) {
+			updateSerie(equipe, TABLE_FIELD_SERIE_D_EN_COURS_DOMICILE, countNombreDefaitesConsecutives, "D");
+		}
+	}
+	
+	private static void setSerieEnCoursExterieur(String equipe) throws VdocHelperException {
 
-		setResourceEquipe(equipe, TABLE_FIELD_SERIE_N_EN_COURS, countNombreMatchsNulsSurLes5DerniersMatchs);
-
+		Long countNombreVictoiresConsecutives = 0L;
+		Long countNombreNulsConsecutifs = 0L;
+		Long countNombreDefaitesConsecutives = 0L;
+		Boolean isAWinningStreakSeries = false;
+		Boolean isADrawStreakSeries = false;
+		Boolean isALoosingStreakSeries = false;
+		
+		if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_1_EXTERIEUR).equals("V")) {
+			isAWinningStreakSeries = true;
+			countNombreVictoiresConsecutives++;
+			setResourceEquipe(equipe, TABLE_FIELD_SERIE_N_EN_COURS_EXTERIEUR, 0L);
+			setResourceEquipe(equipe, TABLE_FIELD_SERIE_D_EN_COURS_EXTERIEUR, 0L);
+		}
+		
+		if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_1_EXTERIEUR).equals("N")) {
+			isADrawStreakSeries = true;
+			countNombreNulsConsecutifs++;
+			setResourceEquipe(equipe, TABLE_FIELD_SERIE_V_EN_COURS_EXTERIEUR, 0L);
+			setResourceEquipe(equipe, TABLE_FIELD_SERIE_D_EN_COURS_EXTERIEUR, 0L);
+		}
+		
+		if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_1_EXTERIEUR).equals("D")) {
+			isALoosingStreakSeries = true;
+			countNombreDefaitesConsecutives++;
+			setResourceEquipe(equipe, TABLE_FIELD_SERIE_V_EN_COURS_EXTERIEUR, 0L);
+			setResourceEquipe(equipe, TABLE_FIELD_SERIE_N_EN_COURS_EXTERIEUR, 0L);
+		}
+		
+		if (isAWinningStreakSeries) {
+			updateSerie(equipe, TABLE_FIELD_SERIE_V_EN_COURS_EXTERIEUR, countNombreVictoiresConsecutives, "V");
+		}
+		
+		if (isADrawStreakSeries) {
+			updateSerie(equipe, TABLE_FIELD_SERIE_N_EN_COURS_EXTERIEUR, countNombreNulsConsecutifs, "N");
+		}
+		
+		if (isALoosingStreakSeries) {
+			updateSerie(equipe, TABLE_FIELD_SERIE_D_EN_COURS_EXTERIEUR, countNombreDefaitesConsecutives, "D");
+		}
 	}
 
-	private static void setSerieDEnCours(String equipe) throws VdocHelperException {
-
-		int countNombreDefaitesSurLes5DerniersMatchs = 0;
-
-		if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_1).equals("D"))
-			countNombreDefaitesSurLes5DerniersMatchs++;
-		if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_2).equals("D"))
-			countNombreDefaitesSurLes5DerniersMatchs++;
-		if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_3).equals("D"))
-			countNombreDefaitesSurLes5DerniersMatchs++;
-		if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_4).equals("D"))
-			countNombreDefaitesSurLes5DerniersMatchs++;
-		if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_5).equals("D"))
-			countNombreDefaitesSurLes5DerniersMatchs++;
-
-		setResourceEquipe(equipe, TABLE_FIELD_SERIE_D_EN_COURS, countNombreDefaitesSurLes5DerniersMatchs);
-	}
-
-	private static void setSerieVEnCours(String equipe) throws VdocHelperException {
-
-		int countNombreVictoiresSurLes5DerniersMatchs = 0;
-
-		if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_1).equals("V"))
-			countNombreVictoiresSurLes5DerniersMatchs++;
-		if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_2).equals("V"))
-			countNombreVictoiresSurLes5DerniersMatchs++;
-		if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_3).equals("V"))
-			countNombreVictoiresSurLes5DerniersMatchs++;
-		if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_4).equals("V"))
-			countNombreVictoiresSurLes5DerniersMatchs++;
-		if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_5).equals("V"))
-			countNombreVictoiresSurLes5DerniersMatchs++;
-
-		setResourceEquipe(equipe, TABLE_FIELD_SERIE_V_EN_COURS, countNombreVictoiresSurLes5DerniersMatchs);
-
-	}
-
-	private static void setSerieNenCoursExterieur(String equipe) throws VdocHelperException {
-
-		int countNombreMatchsNulsSurLes5DerniersMatchsExterieurs = 0;
-
-		if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_1_EXTERIEUR).equals("N"))
-			countNombreMatchsNulsSurLes5DerniersMatchsExterieurs++;
-		if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_2_EXTERIEUR).equals("N"))
-			countNombreMatchsNulsSurLes5DerniersMatchsExterieurs++;
-		if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_3_EXTERIEUR).equals("N"))
-			countNombreMatchsNulsSurLes5DerniersMatchsExterieurs++;
-		if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_4_EXTERIEUR).equals("N"))
-			countNombreMatchsNulsSurLes5DerniersMatchsExterieurs++;
-		if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_5_EXTERIEUR).equals("N"))
-			countNombreMatchsNulsSurLes5DerniersMatchsExterieurs++;
-
-		setResourceEquipe(equipe, TABLE_FIELD_SERIE_N_EN_COURS_EXTERIEUR,
-				countNombreMatchsNulsSurLes5DerniersMatchsExterieurs);
-
-	}
-
-	private static void setSerieNenCoursDomicile(String equipe) throws VdocHelperException {
-
-		int countNombreMatchsNulsSurLes5DerniersMatchsDomicile = 0;
-
-		if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_1_DOMICILE).equals("N"))
-			countNombreMatchsNulsSurLes5DerniersMatchsDomicile++;
-		if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_2_DOMICILE).equals("N"))
-			countNombreMatchsNulsSurLes5DerniersMatchsDomicile++;
-		if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_3_DOMICILE).equals("N"))
-			countNombreMatchsNulsSurLes5DerniersMatchsDomicile++;
-		if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_4_DOMICILE).equals("N"))
-			countNombreMatchsNulsSurLes5DerniersMatchsDomicile++;
-		if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_5_DOMICILE).equals("N"))
-			countNombreMatchsNulsSurLes5DerniersMatchsDomicile++;
-
-		setResourceEquipe(equipe, TABLE_FIELD_SERIE_N_EN_COURS_DOMICILE,
-				countNombreMatchsNulsSurLes5DerniersMatchsDomicile);
-
-	}
-
-	private static void setSerieVenCoursExterieur(String equipe) throws VdocHelperException {
-
-		int countNombreVictoiresSurLes5DerniersMatchsExterieur = 0;
-
-		if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_1_EXTERIEUR).equals("V"))
-			countNombreVictoiresSurLes5DerniersMatchsExterieur++;
-		if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_2_EXTERIEUR).equals("V"))
-			countNombreVictoiresSurLes5DerniersMatchsExterieur++;
-		if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_3_EXTERIEUR).equals("V"))
-			countNombreVictoiresSurLes5DerniersMatchsExterieur++;
-		if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_4_EXTERIEUR).equals("V"))
-			countNombreVictoiresSurLes5DerniersMatchsExterieur++;
-		if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_5_EXTERIEUR).equals("V"))
-			countNombreVictoiresSurLes5DerniersMatchsExterieur++;
-
-		setResourceEquipe(equipe, TABLE_FIELD_SERIE_V_EN_COURS_EXTERIEUR,
-				countNombreVictoiresSurLes5DerniersMatchsExterieur);
-
-	}
-
-	private static void setSerieDenCoursDomicile(String equipe) throws VdocHelperException {
-
-		int countNombreDefaiteSurLes5DerniersMatchsDomicile = 0;
-
-		if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_1_DOMICILE).equals("D"))
-			countNombreDefaiteSurLes5DerniersMatchsDomicile++;
-		if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_2_DOMICILE).equals("D"))
-			countNombreDefaiteSurLes5DerniersMatchsDomicile++;
-		if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_3_DOMICILE).equals("D"))
-			countNombreDefaiteSurLes5DerniersMatchsDomicile++;
-		if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_4_DOMICILE).equals("D"))
-			countNombreDefaiteSurLes5DerniersMatchsDomicile++;
-		if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_5_DOMICILE).equals("D"))
-			countNombreDefaiteSurLes5DerniersMatchsDomicile++;
-
-		setResourceEquipe(equipe, TABLE_FIELD_SERIE_D_EN_COURS_DOMICILE,
-				countNombreDefaiteSurLes5DerniersMatchsDomicile);
-
-	}
-
-	private static void setSerieDenCoursExterieur(String equipe) throws VdocHelperException {
-
-		int countNombreDefaitesSurLes5DerniersMatchsExterieurs = 0;
-
-		if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_1_EXTERIEUR).equals("D"))
-			countNombreDefaitesSurLes5DerniersMatchsExterieurs++;
-		if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_2_EXTERIEUR).equals("D"))
-			countNombreDefaitesSurLes5DerniersMatchsExterieurs++;
-		if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_3_EXTERIEUR).equals("D"))
-			countNombreDefaitesSurLes5DerniersMatchsExterieurs++;
-		if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_4_EXTERIEUR).equals("D"))
-			countNombreDefaitesSurLes5DerniersMatchsExterieurs++;
-		if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_5_EXTERIEUR).equals("D"))
-			countNombreDefaitesSurLes5DerniersMatchsExterieurs++;
-
-		setResourceEquipe(equipe, TABLE_FIELD_SERIE_D_EN_COURS_EXTERIEUR,
-				countNombreDefaitesSurLes5DerniersMatchsExterieurs);
-
-	}
-
-	private static void setSerieVenCoursDomicile(String equipe) throws VdocHelperException {
-
-		int countNombreVictoiresSurLes5DerniersMatchsDomicile = 0;
-
-		if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_1_DOMICILE).equals("V"))
-			countNombreVictoiresSurLes5DerniersMatchsDomicile++;
-		if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_2_DOMICILE).equals("V"))
-			countNombreVictoiresSurLes5DerniersMatchsDomicile++;
-		if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_3_DOMICILE).equals("V"))
-			countNombreVictoiresSurLes5DerniersMatchsDomicile++;
-		if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_4_DOMICILE).equals("V"))
-			countNombreVictoiresSurLes5DerniersMatchsDomicile++;
-		if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_5_DOMICILE).equals("V"))
-			countNombreVictoiresSurLes5DerniersMatchsDomicile++;
-
-		setResourceEquipe(equipe, TABLE_FIELD_SERIE_V_EN_COURS_DOMICILE,
-				countNombreVictoiresSurLes5DerniersMatchsDomicile);
-
+	private static void updateSerie(String equipe, String field, Long serieEnCours, String resultat) throws VdocHelperException {
+		
+		Boolean isSeriesAlive = true;
+		if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_2).equals(resultat)) {
+			serieEnCours++;
+		}
+		else {
+			isSeriesAlive = false;
+		}
+		if (isSeriesAlive && getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_3).equals(resultat)) {
+			serieEnCours++;
+		}
+		else {
+			isSeriesAlive = false;
+		}
+		if (isSeriesAlive && getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_4).equals(resultat)) {
+			serieEnCours++;
+		}
+		else {
+			isSeriesAlive = false;
+		}
+		if (isSeriesAlive && getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_5).equals(resultat)) {
+			serieEnCours++;
+		}
+		else {
+			isSeriesAlive = false;
+		}
+		setResourceEquipe(equipe, field, serieEnCours);
+		
 	}
 
 	// LES SET NOMBRES +1 ET ADDPOINTS
@@ -1576,8 +1543,6 @@ public class UtilitaireLigue1 extends BaseResourceExtension {
 				+ getStatInt(equipe, TABLE_FIELD_NOMBRE_MATCHS_PERDUS_EXTERIEUR) != getStatInt(equipe,
 						TABLE_FIELD_NOMBRE_MATCHS_JOUES_EXTERIEUR))
 			return false;
-		if (!verifForme(equipe))
-			return false;
 		if (getStatInt(equipe, TABLE_FIELD_NOMBRE_VICTOIRES_CLASSEMENT_SUP)
 				+ getStatInt(equipe, TABLE_FIELD_NOMBRE_MATCHS_NULS_CLASSEMENT_SUP)
 				+ getStatInt(equipe, TABLE_FIELD_NOMBRE_DEFAITE_CONTRE_CLASSEMENT_SUPERIEUR) != getStatInt(equipe,
@@ -1663,224 +1628,6 @@ public class UtilitaireLigue1 extends BaseResourceExtension {
 			return false;
 		if (getStatInt(equipe, TABLE_FIELD_NOMBRE_DEFAITE_CONTRE_IMPORTANT) + getStatInt(equipe,
 				TABLE_FIELD_NOMBRE_DEFAITE_CONTRE_BANAL) != getStatInt(equipe, TABLE_FIELD_NOMBRE_MATCHS_PERDUS))
-			return false;
-
-		return true;
-	}
-
-	private static boolean verifForme(String equipe) throws VdocHelperException {
-
-		int countFormeV = 0;
-		int countFormeN = 0;
-		int countFormeD = 0;
-
-		if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_1).equals("V")) {
-			countFormeV++;
-		} else {
-			if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_1).equals("N")) {
-				countFormeN++;
-			} else {
-				if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_1).equals("D")) {
-					countFormeD++;
-				}
-			}
-		}
-
-		if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_2).equals("V")) {
-			countFormeV++;
-		} else {
-			if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_2).equals("N")) {
-				countFormeN++;
-			} else {
-				if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_2).equals("D")) {
-					countFormeD++;
-				}
-			}
-		}
-
-		if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_3).equals("V")) {
-			countFormeV++;
-		} else {
-			if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_3).equals("N")) {
-				countFormeN++;
-			} else {
-				if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_3).equals("D")) {
-					countFormeD++;
-				}
-			}
-		}
-
-		if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_4).equals("V")) {
-			countFormeV++;
-		} else {
-			if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_4).equals("N")) {
-				countFormeN++;
-			} else {
-				if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_4).equals("D")) {
-					countFormeD++;
-				}
-			}
-		}
-
-		if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_5).equals("V")) {
-			countFormeV++;
-		} else {
-			if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_5).equals("N")) {
-				countFormeN++;
-			} else {
-				if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_5).equals("D")) {
-					countFormeD++;
-				}
-			}
-		}
-
-		if (getStatInt(equipe, TABLE_FIELD_SERIE_V_EN_COURS) != countFormeV)
-			return false;
-		if (getStatInt(equipe, TABLE_FIELD_SERIE_N_EN_COURS) != countFormeN)
-			return false;
-		if (getStatInt(equipe, TABLE_FIELD_SERIE_D_EN_COURS) != countFormeD)
-			return false;
-
-		int countFormeVDom = 0;
-		int countFormeNDom = 0;
-		int countFormeDDom = 0;
-
-		if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_1_DOMICILE).equals("V")) {
-			countFormeVDom++;
-		} else {
-			if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_1_DOMICILE).equals("N")) {
-				countFormeNDom++;
-			} else {
-				if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_1_DOMICILE).equals("D")) {
-					countFormeDDom++;
-				}
-			}
-		}
-
-		if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_2_DOMICILE).equals("V")) {
-			countFormeVDom++;
-		} else {
-			if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_2_DOMICILE).equals("N")) {
-				countFormeNDom++;
-			} else {
-				if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_2_DOMICILE).equals("D")) {
-					countFormeDDom++;
-				}
-			}
-		}
-
-		if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_3_DOMICILE).equals("V")) {
-			countFormeVDom++;
-		} else {
-			if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_3_DOMICILE).equals("N")) {
-				countFormeNDom++;
-			} else {
-				if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_3_DOMICILE).equals("D")) {
-					countFormeDDom++;
-				}
-			}
-		}
-
-		if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_4_DOMICILE).equals("V")) {
-			countFormeVDom++;
-		} else {
-			if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_4_DOMICILE).equals("N")) {
-				countFormeNDom++;
-			} else {
-				if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_4_DOMICILE).equals("D")) {
-					countFormeDDom++;
-				}
-			}
-		}
-
-		if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_5_DOMICILE).equals("V")) {
-			countFormeVDom++;
-		} else {
-			if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_5_DOMICILE).equals("N")) {
-				countFormeNDom++;
-			} else {
-				if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_5_DOMICILE).equals("D")) {
-					countFormeDDom++;
-				}
-			}
-		}
-
-		if (getStatInt(equipe, TABLE_FIELD_SERIE_V_EN_COURS_DOMICILE) != countFormeVDom)
-			return false;
-		if (getStatInt(equipe, TABLE_FIELD_SERIE_N_EN_COURS_DOMICILE) != countFormeNDom)
-			return false;
-		if (getStatInt(equipe, TABLE_FIELD_SERIE_D_EN_COURS_DOMICILE) != countFormeDDom)
-			return false;
-
-		int countFormeVExt = 0;
-		int countFormeNExt = 0;
-		int countFormeDExt = 0;
-
-		if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_1_EXTERIEUR).equals("V")) {
-			countFormeVExt++;
-		} else {
-			if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_1_EXTERIEUR).equals("N")) {
-				countFormeNExt++;
-			} else {
-				if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_1_EXTERIEUR).equals("D")) {
-					countFormeDExt++;
-				}
-			}
-		}
-
-		if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_2_EXTERIEUR).equals("V")) {
-			countFormeVExt++;
-		} else {
-			if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_2_EXTERIEUR).equals("N")) {
-				countFormeNExt++;
-			} else {
-				if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_2_EXTERIEUR).equals("D")) {
-					countFormeDExt++;
-				}
-			}
-		}
-
-		if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_3_EXTERIEUR).equals("V")) {
-			countFormeVExt++;
-		} else {
-			if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_3_EXTERIEUR).equals("N")) {
-				countFormeNExt++;
-			} else {
-				if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_3_EXTERIEUR).equals("D")) {
-					countFormeDExt++;
-				}
-			}
-		}
-
-		if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_4_EXTERIEUR).equals("V")) {
-			countFormeVExt++;
-		} else {
-			if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_4_EXTERIEUR).equals("N")) {
-				countFormeNExt++;
-			} else {
-				if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_4_EXTERIEUR).equals("D")) {
-					countFormeDExt++;
-				}
-			}
-		}
-
-		if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_5_EXTERIEUR).equals("V")) {
-			countFormeVExt++;
-		} else {
-			if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_5_EXTERIEUR).equals("N")) {
-				countFormeNExt++;
-			} else {
-				if (getStatString(equipe, TABLE_FIELD_STRING_MATCH_PRECEDENT_5_EXTERIEUR).equals("D")) {
-					countFormeDExt++;
-				}
-			}
-		}
-
-		if (getStatInt(equipe, TABLE_FIELD_SERIE_V_EN_COURS_EXTERIEUR) != countFormeVExt)
-			return false;
-		if (getStatInt(equipe, TABLE_FIELD_SERIE_N_EN_COURS_EXTERIEUR) != countFormeNExt)
-			return false;
-		if (getStatInt(equipe, TABLE_FIELD_SERIE_D_EN_COURS_EXTERIEUR) != countFormeDExt)
 			return false;
 
 		return true;
