@@ -543,6 +543,25 @@ public class UtilitaireLigue1 extends BaseResourceExtension {
 		Modules.releaseModule(dm);
 		return null;
 	}
+	
+	public static Collection<IStorageResource> getResourcesEquipes() throws VdocHelperException {
+
+		Map<String, Object> equalsConstraints = new HashMap<String, Object>();
+
+		IDirectoryModule dm = Modules.getDirectoryModule();
+		IProjectModule pm = Modules.getProjectModule();
+		IWorkflowModule wm = Modules.getWorkflowModule();
+
+		Collection<IStorageResource> equipes = VdocHelper.getDataUniverseResources(dm, pm, wm, ORGANIZATION_NAME,
+				APPLICATION_NAME, DATA_RESERVOIR_EQUIPES_NAME, TABLE_EQUIPES_NAME, equalsConstraints);
+		if (equipes != null) {
+			return equipes;
+		}
+		Modules.releaseModule(wm);
+		Modules.releaseModule(pm);
+		Modules.releaseModule(dm);
+		return null;
+	}
 
 	public static void setResourceEquipe(String surnom, String statAModifier, Object newValue)
 			throws VdocHelperException {

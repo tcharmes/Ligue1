@@ -3,6 +3,7 @@ package com.doandgo.ligue1.matchs;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -28,6 +29,14 @@ import com.doandgo.moovapps.exceptions.VdocHelperException;
 public class GenerateRapportStatistiques extends BaseDocumentExtension {
 
 	private static final long serialVersionUID = 1L;
+	@SuppressWarnings("unused")
+	private static final Float coefficientA = 0.5F;
+	private static final Float coefficientB = 1F;
+	private static final Float coefficientC = 1.5F;
+	private static final Float coefficientD = 2F;
+	@SuppressWarnings("unused")
+	private static final Float coefficientE = 2.5F;
+	private static final Float coefficientF = 3F;
 
 	@Override
 	public boolean onBeforeSubmit(IAction action) {
@@ -97,7 +106,7 @@ public class GenerateRapportStatistiques extends BaseDocumentExtension {
 		writeMapInWordDocument("Statistiques des moyennes de buts du match lors des dernières confrontations " + match,
 				mapTreeStatsMoyennes, document);
 
-		TreeMap<String, String> mapTreeStatsNombreDeButsMatch = getTreeMapStatsNombreButsMatch(statistiques, match);
+		TreeMap<String, String> mapTreeStatsNombreDeButsMatch = getTreeMapStatsNombreButsMatch(statistiques, match, wi);
 		writeMapInWordDocument("Statistiques sur le nombre de buts du match lors des dernières confrontations " + match,
 				mapTreeStatsNombreDeButsMatch, document);
 
@@ -147,6 +156,9 @@ public class GenerateRapportStatistiques extends BaseDocumentExtension {
 		writeHomeTeamStatsFromTableEquipes(document, formE1, e1MieuxClassee, e1MatchImportant);
 
 		writeAwayTeamStatsFromTableEquipes(document, formE2, e1MieuxClassee, e2MatchImportant);
+
+		TreeMap<String, String> mapTreeStatsPronostics = getTreeMapStatsPronostics(statistiques, match, wi);
+		writeMapInWordDocument("Probabilités du résultat : ", mapTreeStatsPronostics, document);
 
 		document.write(out);
 		out.close();
@@ -1402,7 +1414,8 @@ public class GenerateRapportStatistiques extends BaseDocumentExtension {
 
 	}
 
-	private TreeMap<String, String> getTreeMapStatsNombreButsMatch(IStorageResource statistiques, String match) {
+	private TreeMap<String, String> getTreeMapStatsNombreButsMatch(IStorageResource statistiques, String match,
+			IWorkflowInstance wi) {
 
 		Map<String, String> stats = new HashMap<String, String>();
 
@@ -1509,6 +1522,1472 @@ public class GenerateRapportStatistiques extends BaseDocumentExtension {
 		mapTree.putAll(stats);
 
 		return mapTree;
+	}
+
+	private TreeMap<String, String> getTreeMapStatsPronostics(IStorageResource statistiques, String match,
+			IWorkflowInstance wi) throws VdocHelperException {
+
+		String[] score = match.split("-");
+		String e1 = score[0];
+		String e2 = score[1];
+
+		Map<String, String> stats = new HashMap<String, String>();
+
+		Float totalPointsE1 = getProbabilityPointsForHomeTeam(statistiques, match, wi);
+		Float totalPointsNul = getDrawProbabilityPoints(statistiques, match, wi);
+		Float totalPointsE2 = getProbabilityPointsForAwayTeam(statistiques, match, wi);
+
+		Float total = totalPointsE1 + totalPointsE2 + totalPointsNul;
+
+		Float probabiliteVictoireEquipeDomicile = 0F;
+		Float probabiliteMatchNul = 0F;
+		Float probabiliteVictoireEquipeExterieur = 0F;
+
+		if (total != 0F) {
+			probabiliteVictoireEquipeDomicile = (totalPointsE1 / total) * 100;
+			probabiliteMatchNul = (totalPointsNul / total) * 100;
+			probabiliteVictoireEquipeExterieur = (totalPointsE2 / total) * 100;
+		}
+
+		stats.put("Probabilité de victoire de l'équipe " + e1, probabiliteVictoireEquipeDomicile + "%");
+		stats.put("Pourcentage de matchs nuls", probabiliteMatchNul + "%");
+		stats.put("Pourcentage de victoires de l'équipe " + e2, probabiliteVictoireEquipeExterieur + "%");
+
+		PourcentageComparator comparator = new PourcentageComparator(stats);
+		TreeMap<String, String> mapTree = new TreeMap<String, String>(comparator);
+		mapTree.putAll(stats);
+
+		return mapTree;
+	}
+
+	private Float getProbabilityPointsForAwayTeam(IStorageResource statistiques, String match, IWorkflowInstance wi)
+			throws VdocHelperException {
+
+		Float totalPoints = 0F;
+
+		String[] score = match.split("-");
+		String e1 = score[0];
+		String e2 = score[1];
+
+		// 50%
+		Float averagePercentageOfAwayTeamVictoriesInChampionship = getAveragePercentageInChampionship(
+				UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_GAGNES_EXTERIEUR,
+				UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_EXTERIEUR);
+
+		Float pourcentageVEXTConfrontations = ((Float) statistiques
+				.getValue(UtilitaireLigue1.TABLE_STATISTIQUES_FIELD_POURCENTAGE_VICTOIRE_EXTERIEUR));
+
+		String classementE1 = (String) UtilitaireLigue1.getStatString(e1,
+				UtilitaireLigue1.TABLE_FIELD_STRING_CLASSEMENT);
+		String classementE2 = (String) UtilitaireLigue1.getStatString(e2,
+				UtilitaireLigue1.TABLE_FIELD_STRING_CLASSEMENT);
+		Float nbPointsRapportesParClassement = 0F;
+		if (!UtilitaireLigue1.isEmpty(classementE2) && !UtilitaireLigue1.isEmpty(classementE1)) {
+			// e2 mieux classée que e1
+			if (Float.parseFloat(classementE2) < Float.parseFloat(classementE1)) {
+				nbPointsRapportesParClassement = (Float.parseFloat(classementE1) - Float.parseFloat(classementE2));
+			}
+		}
+
+		String classementE1Domicile = (String) UtilitaireLigue1.getStatString(e1,
+				UtilitaireLigue1.TABLE_FIELD_STRING_CLASSEMENT_DOMICILE);
+		String classementE2Exterieur = (String) UtilitaireLigue1.getStatString(e2,
+				UtilitaireLigue1.TABLE_FIELD_STRING_CLASSEMENT_EXTERIEUR);
+		Float nbPointsRapportesParClassementsDomEtExt = 0F;
+		if (!UtilitaireLigue1.isEmpty(classementE2Exterieur) && !UtilitaireLigue1.isEmpty(classementE1Domicile)) {
+			// e2 mieux classée que e1
+			if (Float.parseFloat(classementE2Exterieur) < Float.parseFloat(classementE1Domicile)) {
+				nbPointsRapportesParClassementsDomEtExt = (Float.parseFloat(classementE1Domicile)
+						- Float.parseFloat(classementE2Exterieur));
+			}
+		}
+
+		Float nbPointsForme = 0F;
+		String formeE1 = getFormeActuelle(e1);
+		String formeE2 = getFormeActuelle(e2);
+		if (!UtilitaireLigue1.isEmpty(formeE1) && !UtilitaireLigue1.isEmpty(formeE2)) {
+			if (formeE2.equals("V")) {
+				int serieVe2 = UtilitaireLigue1.getStatInt(e2, UtilitaireLigue1.TABLE_FIELD_SERIE_V_EN_COURS);
+				if (formeE1.equals("V")) {
+					int serieVe1 = UtilitaireLigue1.getStatInt(e1, UtilitaireLigue1.TABLE_FIELD_SERIE_V_EN_COURS);
+					if (serieVe2 > serieVe1) {
+						nbPointsForme = (float) (serieVe2 - serieVe1) * 5;
+					}
+				} else {
+					if (formeE1.equals("N")) {
+						nbPointsForme = (float) serieVe2 * 10;
+					} else {
+						nbPointsForme = (float) serieVe2 * 15;
+					}
+				}
+			}
+		}
+
+		Float nbPointsFormeDomExt = 0F;
+		String formeE1Dom = getFormeActuelleDomicile(e1);
+		String formeE2Ext = getFormeActuelleExterieur(e2);
+		if (!UtilitaireLigue1.isEmpty(formeE1Dom) && !UtilitaireLigue1.isEmpty(formeE2Ext)) {
+			if (formeE2Ext.equals("V")) {
+				int serieVe2 = UtilitaireLigue1.getStatInt(e2, UtilitaireLigue1.TABLE_FIELD_SERIE_V_EN_COURS_EXTERIEUR);
+				if (formeE1Dom.equals("V")) {
+					int serieVe1 = UtilitaireLigue1.getStatInt(e1,
+							UtilitaireLigue1.TABLE_FIELD_SERIE_V_EN_COURS_EXTERIEUR);
+					if (serieVe2 > serieVe1) {
+						nbPointsFormeDomExt = (float) (serieVe2 - serieVe1) * 5;
+					}
+				} else {
+					if (formeE1.equals("N")) {
+						nbPointsFormeDomExt = (float) serieVe2 * 10;
+					} else {
+						nbPointsFormeDomExt = (float) serieVe2 * 15;
+					}
+				}
+			}
+		}
+
+		Float forme5DerniersMatchsE2 = getFormePointsForTeam(e2);
+		Float forme5DerniersMatchsE1 = getFormePointsForTeam(e1);
+		Float forme5DerniersMatchs = 0F;
+		if (forme5DerniersMatchsE2 > forme5DerniersMatchsE1) {
+			forme5DerniersMatchs = forme5DerniersMatchsE2 - forme5DerniersMatchsE1;
+		}
+
+		Float forme5DerniersMatchsE2Exterieur = getFormePointsExterieur(e2);
+		Float forme5DerniersMatchsE1Domicile = getFormePointsDomicile(e1);
+		Float forme5DerniersMatchsDomExt = 0F;
+		if (forme5DerniersMatchsE2Exterieur > forme5DerniersMatchsE1Domicile) {
+			forme5DerniersMatchsDomExt = forme5DerniersMatchsE2Exterieur - forme5DerniersMatchsE1Domicile;
+		}
+
+		Float pointsResultats = 0F;
+		Float pourcentageDefaitesE1 = 0F;
+		Float pourcentageVictoiresE2 = 0F;
+
+		int jouesE1 = UtilitaireLigue1.getStatInt(e1, UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES);
+		int perdusE1 = UtilitaireLigue1.getStatInt(e1, UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_PERDUS);
+		if (jouesE1 > 0) {
+			pourcentageDefaitesE1 = (float) ((perdusE1 / jouesE1)) * 100;
+		}
+		int jouesE2 = UtilitaireLigue1.getStatInt(e2, UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES);
+		int gagnesE2 = UtilitaireLigue1.getStatInt(e2, UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_GAGNES);
+		if (jouesE2 > 0) {
+			pourcentageVictoiresE2 = (float) ((gagnesE2 / jouesE2)) * 100;
+		}
+		pointsResultats = (pourcentageDefaitesE1 + pourcentageVictoiresE2) / 2;
+
+		Float pointsResultatsDomExt = 0F;
+		Float pourcentageDefaitesE1Dom = 0F;
+		Float pourcentageVictoiresE2Ext = 0F;
+
+		int jouesE1Dom = UtilitaireLigue1.getStatInt(e1, UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_DOMICILE);
+		int perdusE1Dom = UtilitaireLigue1.getStatInt(e1, UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_PERDUS_DOMICILE);
+		if (jouesE1Dom > 0) {
+			pourcentageDefaitesE1Dom = (float) ((perdusE1Dom / jouesE1Dom)) * 100;
+		}
+		int jouesE2Ext = UtilitaireLigue1.getStatInt(e2, UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_EXTERIEUR);
+		int gagnesE2Ext = UtilitaireLigue1.getStatInt(e2, UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_GAGNES_EXTERIEUR);
+		if (jouesE2Ext > 0) {
+			pourcentageVictoiresE2Ext = (float) ((gagnesE2Ext / jouesE2Ext)) * 100;
+		}
+		pointsResultatsDomExt = (pourcentageDefaitesE1Dom + pourcentageVictoiresE2Ext) / 2;
+
+		Boolean e1MieuxClassee = (Boolean) wi
+				.getValue(UtilitaireLigue1.FORM_FIELD_CHECK_BOX_EQUIPE_DOMICILE_MIEUX_CLASSEE);
+		Boolean e1MatchImportant = (Boolean) wi
+				.getValue(UtilitaireLigue1.FORM_FIELD_CHECK_BOX_IMPORTANT_EQUIPE_DOMICILE);
+		Boolean e2MatchImportant = (Boolean) wi
+				.getValue(UtilitaireLigue1.FORM_FIELD_CHECK_BOX_IMPORTANT_EQUIPE_EXTERIEUR);
+
+		Float pointsResultatsImportance = 0F;
+		Float pointsResultatsImportanceDomExt = 0F;
+
+		if (e2MatchImportant) {
+			if (e1MatchImportant) {
+				Float pourcentageDefaitesE1Importance = 0F;
+				Float pourcentageVictoiresE2Importance = 0F;
+
+				int jouesE1Importance = UtilitaireLigue1.getStatInt(e1,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_IMPORTANTS);
+				int perdusE1Importance = UtilitaireLigue1.getStatInt(e1,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_DEFAITE_CONTRE_IMPORTANT);
+				if (jouesE1Importance > 0) {
+					pourcentageDefaitesE1Importance = (float) ((perdusE1Importance / jouesE1Importance)) * 100;
+				}
+				int jouesE2Importance = UtilitaireLigue1.getStatInt(e2,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_IMPORTANTS);
+				int gagnesE2Importance = UtilitaireLigue1.getStatInt(e2,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_VICTOIRES_IMPORTANT);
+				if (jouesE2Importance > 0) {
+					pourcentageVictoiresE2Importance = (float) ((gagnesE2Importance / jouesE2Importance)) * 100;
+				}
+				pointsResultatsImportance = (pourcentageDefaitesE1Importance + pourcentageVictoiresE2Importance) / 2;
+
+				Float pourcentageDefaitesE1DomImportance = 0F;
+				Float pourcentageVictoiresE2ExtImportance = 0F;
+
+				int jouesE1DomImportance = UtilitaireLigue1.getStatInt(e1,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_IMPORTANTS_DOMICILE);
+				int perdusE1DomImportance = UtilitaireLigue1.getStatInt(e1,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_DEFAITE_CONTRE_IMPORTANT_DOMICILE);
+				if (jouesE1DomImportance > 0) {
+					pourcentageDefaitesE1DomImportance = (float) ((perdusE1DomImportance / jouesE1DomImportance)) * 100;
+				}
+				int jouesE2ExtImportance = UtilitaireLigue1.getStatInt(e2,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_IMPORTANTS_EXTERIEUR);
+				int gagnesE2ExtImportance = UtilitaireLigue1.getStatInt(e2,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_VICTOIRES_IMPORTANT_EXTERIEUR);
+				if (jouesE2ExtImportance > 0) {
+					pourcentageVictoiresE2ExtImportance = (float) ((gagnesE2ExtImportance / jouesE2ExtImportance))
+							* 100;
+				}
+				pointsResultatsImportanceDomExt = (pourcentageDefaitesE1DomImportance
+						+ pourcentageVictoiresE2ExtImportance) / 2;
+			} else {
+				Float pourcentageDefaitesE1ImportanceNon = 0F;
+				Float pourcentageVictoiresE2Importance = 0F;
+
+				int jouesE1ImportanceNon = UtilitaireLigue1.getStatInt(e1,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_BANAL);
+				int perdusE1ImportanceNon = UtilitaireLigue1.getStatInt(e1,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_DEFAITE_CONTRE_BANAL);
+				if (jouesE1ImportanceNon > 0) {
+					pourcentageDefaitesE1ImportanceNon = (float) ((perdusE1ImportanceNon / jouesE1ImportanceNon)) * 100;
+				}
+				int jouesE2Importance = UtilitaireLigue1.getStatInt(e2,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_IMPORTANTS);
+				int gagnesE2Importance = UtilitaireLigue1.getStatInt(e2,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_VICTOIRES_IMPORTANT);
+				if (jouesE2Importance > 0) {
+					pourcentageVictoiresE2Importance = (float) ((gagnesE2Importance / jouesE2Importance)) * 100;
+				}
+				pointsResultatsImportance = (pourcentageDefaitesE1ImportanceNon + pourcentageVictoiresE2Importance) / 2;
+
+				Float pourcentageDefaitesE1DomImportanceNon = 0F;
+				Float pourcentageVictoiresE2ExtImportance = 0F;
+
+				int jouesE1DomImportanceNon = UtilitaireLigue1.getStatInt(e1,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_BANAL_DOMICILE);
+				int perdusE1DomImportanceNon = UtilitaireLigue1.getStatInt(e1,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_DEFAITE_CONTRE_BANAL_DOMICILE);
+				if (jouesE1DomImportanceNon > 0) {
+					pourcentageDefaitesE1DomImportanceNon = (float) ((perdusE1DomImportanceNon
+							/ jouesE1DomImportanceNon)) * 100;
+				}
+				int jouesE2ExtImportance = UtilitaireLigue1.getStatInt(e2,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_IMPORTANTS_EXTERIEUR);
+				int gagnesE2ExtImportance = UtilitaireLigue1.getStatInt(e2,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_VICTOIRES_IMPORTANT_EXTERIEUR);
+				if (jouesE2ExtImportance > 0) {
+					pourcentageVictoiresE2ExtImportance = (float) ((gagnesE2ExtImportance / jouesE2ExtImportance))
+							* 100;
+				}
+				pointsResultatsImportanceDomExt = (pourcentageDefaitesE1DomImportanceNon
+						+ pourcentageVictoiresE2ExtImportance) / 2;
+			}
+		} else {
+			if (e1MatchImportant) {
+				Float pourcentageDefaitesE1Importance = 0F;
+				Float pourcentageVictoiresE2ImportanceNon = 0F;
+
+				int jouesE1Importance = UtilitaireLigue1.getStatInt(e1,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_IMPORTANTS);
+				int perdusE1Importance = UtilitaireLigue1.getStatInt(e1,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_DEFAITE_CONTRE_IMPORTANT);
+				if (jouesE1Importance > 0) {
+					pourcentageDefaitesE1Importance = (float) ((perdusE1Importance / jouesE1Importance)) * 100;
+				}
+				int jouesE2ImportanceNon = UtilitaireLigue1.getStatInt(e2,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_BANAL);
+				int gagnesE2ImportanceNon = UtilitaireLigue1.getStatInt(e2,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_VICTOIRES_BANAL);
+				if (jouesE2ImportanceNon > 0) {
+					pourcentageVictoiresE2ImportanceNon = (float) ((gagnesE2ImportanceNon / jouesE2ImportanceNon))
+							* 100;
+				}
+				pointsResultatsImportance = (pourcentageDefaitesE1Importance + pourcentageVictoiresE2ImportanceNon) / 2;
+
+				Float pourcentageDefaitesE1DomImportance = 0F;
+				Float pourcentageVictoiresE2ExtImportanceNon = 0F;
+
+				int jouesE1DomImportance = UtilitaireLigue1.getStatInt(e1,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_IMPORTANTS_DOMICILE);
+				int perdusE1DomImportance = UtilitaireLigue1.getStatInt(e1,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_DEFAITE_CONTRE_IMPORTANT_DOMICILE);
+				if (jouesE1DomImportance > 0) {
+					pourcentageDefaitesE1DomImportance = (float) ((perdusE1DomImportance / jouesE1DomImportance)) * 100;
+				}
+				int jouesE2ExtImportanceNon = UtilitaireLigue1.getStatInt(e2,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_BANAL_EXTERIEUR);
+				int gagnesE2ExtImportanceNon = UtilitaireLigue1.getStatInt(e2,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_VICTOIRES_BANAL_EXTERIEUR);
+				if (jouesE2ExtImportanceNon > 0) {
+					pourcentageVictoiresE2ExtImportanceNon = (float) ((gagnesE2ExtImportanceNon
+							/ jouesE2ExtImportanceNon)) * 100;
+				}
+				pointsResultatsImportanceDomExt = (pourcentageDefaitesE1DomImportance
+						+ pourcentageVictoiresE2ExtImportanceNon) / 2;
+			} else {
+				Float pourcentageDefaitesE1ImportanceNon = 0F;
+				Float pourcentageVictoiresE2ImportanceNon = 0F;
+
+				int jouesE1ImportanceNon = UtilitaireLigue1.getStatInt(e1,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_BANAL);
+				int perdusE1ImportanceNon = UtilitaireLigue1.getStatInt(e1,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_DEFAITE_CONTRE_BANAL);
+				if (jouesE1ImportanceNon > 0) {
+					pourcentageDefaitesE1ImportanceNon = (float) ((perdusE1ImportanceNon / jouesE1ImportanceNon)) * 100;
+				}
+				int jouesE2ImportanceNon = UtilitaireLigue1.getStatInt(e2,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_BANAL);
+				int gagnesE2ImportanceNon = UtilitaireLigue1.getStatInt(e2,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_VICTOIRES_BANAL);
+				if (jouesE2ImportanceNon > 0) {
+					pourcentageVictoiresE2ImportanceNon = (float) ((gagnesE2ImportanceNon / jouesE2ImportanceNon))
+							* 100;
+				}
+				pointsResultatsImportance = (pourcentageDefaitesE1ImportanceNon + pourcentageVictoiresE2ImportanceNon)
+						/ 2;
+
+				Float pourcentageDefaitesE1DomImportanceNon = 0F;
+				Float pourcentageVictoiresE2ExtImportanceNon = 0F;
+
+				int jouesE1DomImportanceNon = UtilitaireLigue1.getStatInt(e1,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_BANAL_DOMICILE);
+				int perdusE1DomImportanceNon = UtilitaireLigue1.getStatInt(e1,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_DEFAITE_CONTRE_BANAL_DOMICILE);
+				if (jouesE1DomImportanceNon > 0) {
+					pourcentageDefaitesE1DomImportanceNon = (float) ((perdusE1DomImportanceNon
+							/ jouesE1DomImportanceNon)) * 100;
+				}
+				int jouesE2ExtImportanceNon = UtilitaireLigue1.getStatInt(e2,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_BANAL_EXTERIEUR);
+				int gagnesE2ExtImportanceNon = UtilitaireLigue1.getStatInt(e2,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_VICTOIRES_BANAL_EXTERIEUR);
+				if (jouesE2ExtImportanceNon > 0) {
+					pourcentageVictoiresE2ExtImportanceNon = (float) ((gagnesE2ExtImportanceNon
+							/ jouesE2ExtImportanceNon)) * 100;
+				}
+				pointsResultatsImportanceDomExt = (pourcentageDefaitesE1DomImportanceNon
+						+ pourcentageVictoiresE2ExtImportanceNon) / 2;
+
+			}
+		}
+
+		Float pointsResultatsClassement = 0F;
+		Float pointsResultatsClassementDomExt = 0F;
+
+		if (e1MieuxClassee) {
+
+			Float pourcentageDefaitesE1ContreClassementInferieur = 0F;
+			Float pourcentageVictoiresE2ContreClassementSuperieur = 0F;
+
+			int jouesE1ContreClassementInferieur = UtilitaireLigue1.getStatInt(e1,
+					UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_CLASSEMENT_INF);
+			int perdusE1ContreClassementInferieur = UtilitaireLigue1.getStatInt(e1,
+					UtilitaireLigue1.TABLE_FIELD_NOMBRE_DEFAITE_CONTRE_CLASSEMENT_INFERIEUR);
+			if (jouesE1ContreClassementInferieur > 0) {
+				pourcentageDefaitesE1ContreClassementInferieur = (float) ((perdusE1ContreClassementInferieur
+						/ jouesE1ContreClassementInferieur)) * 100;
+			}
+			int jouesE2ContreClassementSuperieur = UtilitaireLigue1.getStatInt(e2,
+					UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_CLASSEMENT_SUP);
+			int gagnesE2ContreClassementSuperieur = UtilitaireLigue1.getStatInt(e2,
+					UtilitaireLigue1.TABLE_FIELD_NOMBRE_VICTOIRES_CLASSEMENT_SUP);
+			if (jouesE2ContreClassementSuperieur > 0) {
+				pourcentageVictoiresE2ContreClassementSuperieur = (float) ((gagnesE2ContreClassementSuperieur
+						/ jouesE2ContreClassementSuperieur)) * 100;
+			}
+			pointsResultatsClassement = (pourcentageDefaitesE1ContreClassementInferieur
+					+ pourcentageVictoiresE2ContreClassementSuperieur) / 2;
+
+			Float pourcentageDefaitesE1ContreClassementInferieurDomicile = 0F;
+			Float pourcentageVictoiresE2ContreClassementSuperieurExterieur = 0F;
+
+			int jouesE1ContreClassementInferieurDomicile = UtilitaireLigue1.getStatInt(e1,
+					UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_CLASSEMENT_INF_DOMICILE);
+			int perdusE1ContreClassementInferieurDomicile = UtilitaireLigue1.getStatInt(e1,
+					UtilitaireLigue1.TABLE_FIELD_NOMBRE_DEFAITE_CONTRE_CLASSEMENT_INFERIEUR_DOMICILE);
+			if (jouesE1ContreClassementInferieurDomicile > 0) {
+				pourcentageDefaitesE1ContreClassementInferieurDomicile = (float) ((perdusE1ContreClassementInferieurDomicile
+						/ jouesE1ContreClassementInferieurDomicile)) * 100;
+			}
+			int jouesE2ContreClassementSuperieurExterieur = UtilitaireLigue1.getStatInt(e2,
+					UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_CLASSEMENT_SUP_EXTERIEUR);
+			int gagnesE2ContreClassementSuperieurExterieur = UtilitaireLigue1.getStatInt(e2,
+					UtilitaireLigue1.TABLE_FIELD_NOMBRE_VICTOIRES_CLASSEMENT_SUP_EXTERIEUR);
+			if (jouesE2ContreClassementSuperieurExterieur > 0) {
+				pourcentageVictoiresE2ContreClassementSuperieurExterieur = (float) ((gagnesE2ContreClassementSuperieurExterieur
+						/ jouesE2ContreClassementSuperieurExterieur)) * 100;
+			}
+			pointsResultatsClassementDomExt = (pourcentageDefaitesE1ContreClassementInferieurDomicile
+					+ pourcentageVictoiresE2ContreClassementSuperieurExterieur) / 2;
+
+		} else {
+			Float pourcentageDefaitesE1ContreClassementSuperieur = 0F;
+			Float pourcentageVictoiresE2ContreClassementInferieur = 0F;
+
+			int jouesE1ContreClassementSuperieur = UtilitaireLigue1.getStatInt(e1,
+					UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_CLASSEMENT_SUP);
+			int perdusE1ContreClassementSuperieur = UtilitaireLigue1.getStatInt(e1,
+					UtilitaireLigue1.TABLE_FIELD_NOMBRE_DEFAITE_CONTRE_CLASSEMENT_SUPERIEUR);
+			if (jouesE1ContreClassementSuperieur > 0) {
+				pourcentageDefaitesE1ContreClassementSuperieur = (float) ((perdusE1ContreClassementSuperieur
+						/ jouesE1ContreClassementSuperieur)) * 100;
+			}
+			int jouesE2ContreClassementInferieur = UtilitaireLigue1.getStatInt(e2,
+					UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_CLASSEMENT_INF);
+			int gagnesE2ContreClassementInferieur = UtilitaireLigue1.getStatInt(e2,
+					UtilitaireLigue1.TABLE_FIELD_NOMBRE_VICTOIRES_CLASSEMENT_INF);
+			if (jouesE2ContreClassementInferieur > 0) {
+				pourcentageVictoiresE2ContreClassementInferieur = (float) ((gagnesE2ContreClassementInferieur
+						/ jouesE2ContreClassementInferieur)) * 100;
+			}
+			pointsResultatsClassement = (pourcentageDefaitesE1ContreClassementSuperieur
+					+ pourcentageVictoiresE2ContreClassementInferieur) / 2;
+
+			Float pourcentageDefaitesE1ContreClassementSuperieurDomicile = 0F;
+			Float pourcentageVictoiresE2ContreClassementInferieurExterieur = 0F;
+
+			int jouesE1ContreClassementSuperieurDomicile = UtilitaireLigue1.getStatInt(e1,
+					UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_CLASSEMENT_SUP_DOMICILE);
+			int perdusE1ContreClassementSuperieurDomicile = UtilitaireLigue1.getStatInt(e1,
+					UtilitaireLigue1.TABLE_FIELD_NOMBRE_DEFAITE_CONTRE_CLASSEMENT_SUPERIEUR_DOMICILE);
+			if (jouesE1ContreClassementSuperieurDomicile > 0) {
+				pourcentageDefaitesE1ContreClassementSuperieurDomicile = (float) ((perdusE1ContreClassementSuperieurDomicile
+						/ jouesE1ContreClassementSuperieurDomicile)) * 100;
+			}
+			int jouesE2ContreClassementInferieurExterieur = UtilitaireLigue1.getStatInt(e2,
+					UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_CLASSEMENT_INF_EXTERIEUR);
+			int gagnesE2ContreClassementInferieurExterieur = UtilitaireLigue1.getStatInt(e2,
+					UtilitaireLigue1.TABLE_FIELD_NOMBRE_VICTOIRES_CLASSEMENT_INF_EXTERIEUR);
+			if (jouesE2ContreClassementInferieurExterieur > 0) {
+				pourcentageVictoiresE2ContreClassementInferieurExterieur = (float) ((gagnesE2ContreClassementInferieurExterieur
+						/ jouesE2ContreClassementInferieurExterieur)) * 100;
+			}
+			pointsResultatsClassementDomExt = (pourcentageDefaitesE1ContreClassementSuperieurDomicile
+					+ pourcentageVictoiresE2ContreClassementInferieurExterieur) / 2;
+
+		}
+
+		totalPoints = coefficientB * averagePercentageOfAwayTeamVictoriesInChampionship
+				+ (coefficientF * pourcentageVEXTConfrontations) + (coefficientC * nbPointsRapportesParClassement)
+				+ (coefficientC * nbPointsRapportesParClassementsDomEtExt) + (coefficientC * nbPointsForme)
+				+ (coefficientC * forme5DerniersMatchs) + (coefficientC * forme5DerniersMatchsDomExt)
+				+ (coefficientD * pointsResultats) + (coefficientD * pointsResultatsDomExt)
+				+ (coefficientC * nbPointsFormeDomExt) + (coefficientD * pointsResultatsImportance)
+				+ (coefficientD * pointsResultatsImportanceDomExt) + (coefficientD * pointsResultatsClassement)
+				+ (coefficientD * pointsResultatsClassementDomExt);
+
+		return totalPoints;
+	}
+
+	private Float getFormePointsDomicile(String e) throws VdocHelperException {
+
+		Float forme = 0F;
+
+		String precedent1 = UtilitaireLigue1.getStatString(e,
+				UtilitaireLigue1.TABLE_FIELD_STRING_MATCH_PRECEDENT_1_DOMICILE);
+		String precedent2 = UtilitaireLigue1.getStatString(e,
+				UtilitaireLigue1.TABLE_FIELD_STRING_MATCH_PRECEDENT_2_DOMICILE);
+		String precedent3 = UtilitaireLigue1.getStatString(e,
+				UtilitaireLigue1.TABLE_FIELD_STRING_MATCH_PRECEDENT_3_DOMICILE);
+		String precedent4 = UtilitaireLigue1.getStatString(e,
+				UtilitaireLigue1.TABLE_FIELD_STRING_MATCH_PRECEDENT_4_DOMICILE);
+		String precedent5 = UtilitaireLigue1.getStatString(e,
+				UtilitaireLigue1.TABLE_FIELD_STRING_MATCH_PRECEDENT_5_DOMICILE);
+
+		forme = getNombreForme("V", precedent1, precedent2, precedent3, precedent4, precedent5) * 10F
+				+ getNombreForme("N", precedent1, precedent2, precedent3, precedent4, precedent5) * 5F;
+
+		return forme;
+	}
+
+	private Float getFormePointsExterieur(String e) throws VdocHelperException {
+
+		Float forme = 0F;
+
+		String precedent1 = UtilitaireLigue1.getStatString(e,
+				UtilitaireLigue1.TABLE_FIELD_STRING_MATCH_PRECEDENT_1_EXTERIEUR);
+		String precedent2 = UtilitaireLigue1.getStatString(e,
+				UtilitaireLigue1.TABLE_FIELD_STRING_MATCH_PRECEDENT_2_EXTERIEUR);
+		String precedent3 = UtilitaireLigue1.getStatString(e,
+				UtilitaireLigue1.TABLE_FIELD_STRING_MATCH_PRECEDENT_3_EXTERIEUR);
+		String precedent4 = UtilitaireLigue1.getStatString(e,
+				UtilitaireLigue1.TABLE_FIELD_STRING_MATCH_PRECEDENT_4_EXTERIEUR);
+		String precedent5 = UtilitaireLigue1.getStatString(e,
+				UtilitaireLigue1.TABLE_FIELD_STRING_MATCH_PRECEDENT_5_EXTERIEUR);
+
+		forme = getNombreForme("V", precedent1, precedent2, precedent3, precedent4, precedent5) * 10F
+				+ getNombreForme("N", precedent1, precedent2, precedent3, precedent4, precedent5) * 5F;
+
+		return forme;
+	}
+
+	private Float getFormePointsForTeam(String e) throws VdocHelperException {
+
+		Float forme = 0F;
+
+		String precedent1 = UtilitaireLigue1.getStatString(e, UtilitaireLigue1.TABLE_FIELD_STRING_MATCH_PRECEDENT_1);
+		String precedent2 = UtilitaireLigue1.getStatString(e, UtilitaireLigue1.TABLE_FIELD_STRING_MATCH_PRECEDENT_2);
+		String precedent3 = UtilitaireLigue1.getStatString(e, UtilitaireLigue1.TABLE_FIELD_STRING_MATCH_PRECEDENT_3);
+		String precedent4 = UtilitaireLigue1.getStatString(e, UtilitaireLigue1.TABLE_FIELD_STRING_MATCH_PRECEDENT_4);
+		String precedent5 = UtilitaireLigue1.getStatString(e, UtilitaireLigue1.TABLE_FIELD_STRING_MATCH_PRECEDENT_5);
+
+		forme = getNombreForme("V", precedent1, precedent2, precedent3, precedent4, precedent5) * 10F
+				+ getNombreForme("N", precedent1, precedent2, precedent3, precedent4, precedent5) * 5F;
+
+		return forme;
+	}
+	
+	private Float getFormePointsForDraw(String e1, String e2) throws VdocHelperException {
+
+			Float forme = 0F;
+
+			String e1precedent1 = UtilitaireLigue1.getStatString(e1, UtilitaireLigue1.TABLE_FIELD_STRING_MATCH_PRECEDENT_1);
+			String e1precedent2 = UtilitaireLigue1.getStatString(e1, UtilitaireLigue1.TABLE_FIELD_STRING_MATCH_PRECEDENT_2);
+			String e1precedent3 = UtilitaireLigue1.getStatString(e1, UtilitaireLigue1.TABLE_FIELD_STRING_MATCH_PRECEDENT_3);
+			String e1precedent4 = UtilitaireLigue1.getStatString(e1, UtilitaireLigue1.TABLE_FIELD_STRING_MATCH_PRECEDENT_4);
+			String e1precedent5 = UtilitaireLigue1.getStatString(e1, UtilitaireLigue1.TABLE_FIELD_STRING_MATCH_PRECEDENT_5);
+			
+			String e2precedent1 = UtilitaireLigue1.getStatString(e2, UtilitaireLigue1.TABLE_FIELD_STRING_MATCH_PRECEDENT_1);
+			String e2precedent2 = UtilitaireLigue1.getStatString(e2, UtilitaireLigue1.TABLE_FIELD_STRING_MATCH_PRECEDENT_2);
+			String e2precedent3 = UtilitaireLigue1.getStatString(e2, UtilitaireLigue1.TABLE_FIELD_STRING_MATCH_PRECEDENT_3);
+			String e2precedent4 = UtilitaireLigue1.getStatString(e2, UtilitaireLigue1.TABLE_FIELD_STRING_MATCH_PRECEDENT_4);
+			String e2precedent5 = UtilitaireLigue1.getStatString(e2, UtilitaireLigue1.TABLE_FIELD_STRING_MATCH_PRECEDENT_5);
+
+			forme = getNombreForme("N", e1precedent1, e1precedent2, e1precedent3, e1precedent4, e1precedent5) * 10F
+					+ getNombreForme("N", e2precedent1, e2precedent2, e2precedent3, e2precedent4, e2precedent5) * 10F;
+
+			return forme;
+		
+	}
+	
+	private float getFormePointsForDrawDomExt(String e1, String e2) throws VdocHelperException {
+		
+		Float forme = 0F;
+
+		String e1precedent1 = UtilitaireLigue1.getStatString(e1, UtilitaireLigue1.TABLE_FIELD_STRING_MATCH_PRECEDENT_1_DOMICILE);
+		String e1precedent2 = UtilitaireLigue1.getStatString(e1, UtilitaireLigue1.TABLE_FIELD_STRING_MATCH_PRECEDENT_2_DOMICILE);
+		String e1precedent3 = UtilitaireLigue1.getStatString(e1, UtilitaireLigue1.TABLE_FIELD_STRING_MATCH_PRECEDENT_3_DOMICILE);
+		String e1precedent4 = UtilitaireLigue1.getStatString(e1, UtilitaireLigue1.TABLE_FIELD_STRING_MATCH_PRECEDENT_4_DOMICILE);
+		String e1precedent5 = UtilitaireLigue1.getStatString(e1, UtilitaireLigue1.TABLE_FIELD_STRING_MATCH_PRECEDENT_5_DOMICILE);
+		
+		String e2precedent1 = UtilitaireLigue1.getStatString(e2, UtilitaireLigue1.TABLE_FIELD_STRING_MATCH_PRECEDENT_1_EXTERIEUR);
+		String e2precedent2 = UtilitaireLigue1.getStatString(e2, UtilitaireLigue1.TABLE_FIELD_STRING_MATCH_PRECEDENT_2_EXTERIEUR);
+		String e2precedent3 = UtilitaireLigue1.getStatString(e2, UtilitaireLigue1.TABLE_FIELD_STRING_MATCH_PRECEDENT_3_EXTERIEUR);
+		String e2precedent4 = UtilitaireLigue1.getStatString(e2, UtilitaireLigue1.TABLE_FIELD_STRING_MATCH_PRECEDENT_4_EXTERIEUR);
+		String e2precedent5 = UtilitaireLigue1.getStatString(e2, UtilitaireLigue1.TABLE_FIELD_STRING_MATCH_PRECEDENT_5_EXTERIEUR);
+
+		forme = getNombreForme("N", e1precedent1, e1precedent2, e1precedent3, e1precedent4, e1precedent5) * 10F
+				+ getNombreForme("N", e2precedent1, e2precedent2, e2precedent3, e2precedent4, e2precedent5) * 10F;
+
+		return forme;
+		
+	}
+
+	private int getNombreForme(String forme, String precedent1, String precedent2, String precedent3, String precedent4,
+			String precedent5) {
+
+		int total = 0;
+		if (precedent1.equals(forme))
+			total++;
+		if (precedent2.equals(forme))
+			total++;
+		if (precedent3.equals(forme))
+			total++;
+		if (precedent4.equals(forme))
+			total++;
+		if (precedent5.equals(forme))
+			total++;
+		return total;
+	}
+
+	private String getFormeActuelleExterieur(String e) {
+
+		try {
+			int serieV = UtilitaireLigue1.getStatInt(e, UtilitaireLigue1.TABLE_FIELD_SERIE_V_EN_COURS_EXTERIEUR);
+			if (serieV > 0)
+				return "V";
+			int serieN = UtilitaireLigue1.getStatInt(e, UtilitaireLigue1.TABLE_FIELD_SERIE_N_EN_COURS_EXTERIEUR);
+			if (serieN > 0)
+				return "N";
+			int serieD = UtilitaireLigue1.getStatInt(e, UtilitaireLigue1.TABLE_FIELD_SERIE_D_EN_COURS_EXTERIEUR);
+			if (serieD > 0)
+				return "D";
+
+		} catch (VdocHelperException e1) {
+			e1.printStackTrace();
+		}
+		return null;
+	}
+
+	private String getFormeActuelleDomicile(String e) {
+
+		try {
+			int serieV = UtilitaireLigue1.getStatInt(e, UtilitaireLigue1.TABLE_FIELD_SERIE_V_EN_COURS_DOMICILE);
+			if (serieV > 0)
+				return "V";
+			int serieN = UtilitaireLigue1.getStatInt(e, UtilitaireLigue1.TABLE_FIELD_SERIE_N_EN_COURS_DOMICILE);
+			if (serieN > 0)
+				return "N";
+			int serieD = UtilitaireLigue1.getStatInt(e, UtilitaireLigue1.TABLE_FIELD_SERIE_D_EN_COURS_DOMICILE);
+			if (serieD > 0)
+				return "D";
+
+		} catch (VdocHelperException e1) {
+			e1.printStackTrace();
+		}
+		return null;
+	}
+
+	private String getFormeActuelle(String e) {
+
+		try {
+			int serieV = UtilitaireLigue1.getStatInt(e, UtilitaireLigue1.TABLE_FIELD_SERIE_V_EN_COURS);
+			if (serieV > 0)
+				return "V";
+			int serieN = UtilitaireLigue1.getStatInt(e, UtilitaireLigue1.TABLE_FIELD_SERIE_N_EN_COURS);
+			if (serieN > 0)
+				return "N";
+			int serieD = UtilitaireLigue1.getStatInt(e, UtilitaireLigue1.TABLE_FIELD_SERIE_D_EN_COURS);
+			if (serieD > 0)
+				return "D";
+
+		} catch (VdocHelperException e1) {
+			e1.printStackTrace();
+		}
+		return null;
+	}
+
+	private Float getDrawProbabilityPoints(IStorageResource statistiques, String match, IWorkflowInstance wi) throws VdocHelperException {
+
+		Float totalPoints = 0F;
+
+		String[] score = match.split("-");
+		String e1 = score[0];
+		String e2 = score[1];
+
+		Float averagePercentageOfDrawsInChampionship = getAveragePercentageInChampionship(
+				UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_NULS, UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES);
+
+		Float pourcentageNulsConfrontations = ((Float) statistiques
+				.getValue(UtilitaireLigue1.TABLE_STATISTIQUES_FIELD_POURCENTAGE_NULS));
+
+		String classementE1 = (String) UtilitaireLigue1.getStatString(e1,
+				UtilitaireLigue1.TABLE_FIELD_STRING_CLASSEMENT);
+		String classementE2 = (String) UtilitaireLigue1.getStatString(e2,
+				UtilitaireLigue1.TABLE_FIELD_STRING_CLASSEMENT);
+		Float nbPointsRapportesParClassement = 0F;
+		if (!UtilitaireLigue1.isEmpty(classementE2) && !UtilitaireLigue1.isEmpty(classementE1)) {
+			// il n'y a pas plus de 3 places d'écart au classement
+			if (Math.abs(Long.parseLong(classementE1) - Long.parseLong(classementE2)) <= 3) {
+				nbPointsRapportesParClassement = Math
+						.abs(Float.parseFloat(classementE2) - Float.parseFloat(classementE1)) * 10;
+			}
+		}
+
+		String classementE1Domicile = (String) UtilitaireLigue1.getStatString(e1,
+				UtilitaireLigue1.TABLE_FIELD_STRING_CLASSEMENT_DOMICILE);
+		String classementE2Exterieur = (String) UtilitaireLigue1.getStatString(e2,
+				UtilitaireLigue1.TABLE_FIELD_STRING_CLASSEMENT_EXTERIEUR);
+		Float nbPointsRapportesParClassementsDomEtExt = 0F;
+		if (!UtilitaireLigue1.isEmpty(classementE2Exterieur) && !UtilitaireLigue1.isEmpty(classementE1Domicile)) {
+			// il n'y a pas plus de 3 places d'écart au classement
+			if (Math.abs(Long.parseLong(classementE1Domicile) - Long.parseLong(classementE2Exterieur)) <= 3) {
+				nbPointsRapportesParClassement = Math
+						.abs(Float.parseFloat(classementE2Exterieur) - Float.parseFloat(classementE1Domicile)) * 10;
+			}
+		}
+
+		Float nbPointsForme = 0F;
+		String formeE1 = getFormeActuelle(e1);
+		String formeE2 = getFormeActuelle(e2);
+		if (!UtilitaireLigue1.isEmpty(formeE1) && !UtilitaireLigue1.isEmpty(formeE2)) {
+			if (formeE1.equals("N")) {
+				int serieNe1 = UtilitaireLigue1.getStatInt(e1, UtilitaireLigue1.TABLE_FIELD_SERIE_N_EN_COURS);
+				if (formeE2.equals("N")) {
+					int serieNe2 = UtilitaireLigue1.getStatInt(e2, UtilitaireLigue1.TABLE_FIELD_SERIE_N_EN_COURS);
+					nbPointsForme = (float) (serieNe1 + serieNe2) * 5;
+				}
+			}
+		}
+
+		Float nbPointsFormeDomExt = 0F;
+		String formeE1Dom = getFormeActuelleDomicile(e1);
+		String formeE2Ext = getFormeActuelleExterieur(e2);
+		if (!UtilitaireLigue1.isEmpty(formeE1Dom) && !UtilitaireLigue1.isEmpty(formeE2Ext)) {
+			if (formeE1Dom.equals("N")) {
+				int serieNe1 = UtilitaireLigue1.getStatInt(e1, UtilitaireLigue1.TABLE_FIELD_SERIE_N_EN_COURS_DOMICILE);
+				if (formeE2Ext.equals("N")) {
+					int serieNe2 = UtilitaireLigue1.getStatInt(e2, UtilitaireLigue1.TABLE_FIELD_SERIE_N_EN_COURS_EXTERIEUR);
+					nbPointsFormeDomExt = (float) (serieNe1 + serieNe2) * 5;
+				}
+			}
+		}
+
+		Float forme5DerniersMatchsDraw = getFormePointsForDraw(e1, e2);
+
+		Float forme5DerniersMatchsDrawDomExt = getFormePointsForDrawDomExt(e1, e2);
+
+		Float pointsResultats = 0F;
+		Float pourcentageNulsE2 = 0F;
+		Float pourcentageNulsE1 = 0F;
+
+		int jouesE2 = UtilitaireLigue1.getStatInt(e2, UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES);
+		int nulsE2 = UtilitaireLigue1.getStatInt(e2, UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_NULS);
+		if (jouesE2 > 0) {
+			pourcentageNulsE2 = (float) ((nulsE2 / jouesE2)) * 100;
+		}
+		int jouesE1 = UtilitaireLigue1.getStatInt(e1, UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES);
+		int nulsE1 = UtilitaireLigue1.getStatInt(e1, UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_NULS);
+		if (jouesE1 > 0) {
+			pourcentageNulsE1 = (float) ((nulsE1 / jouesE1)) * 100;
+		}
+		pointsResultats = (pourcentageNulsE2 + pourcentageNulsE1) / 2;
+
+		Float pointsResultatsDomExt = 0F;
+		Float pourcentageNulsE2Ext = 0F;
+		Float pourcentageNulsE1Dom = 0F;
+
+		int jouesE2Ext = UtilitaireLigue1.getStatInt(e2, UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_EXTERIEUR);
+		int nulsE2Ext = UtilitaireLigue1.getStatInt(e2, UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_NULS_EXTERIEUR);
+		if (jouesE2Ext > 0) {
+			pourcentageNulsE2Ext = (float) ((nulsE2Ext / jouesE2Ext)) * 100;
+		}
+		int jouesE1Dom = UtilitaireLigue1.getStatInt(e1, UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_DOMICILE);
+		int nulsE1Dom = UtilitaireLigue1.getStatInt(e1, UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_NULS_DOMICILE);
+		if (jouesE1Dom > 0) {
+			pourcentageNulsE1Dom = (float) ((nulsE1Dom / jouesE1Dom)) * 100;
+		}
+		pointsResultatsDomExt = (pourcentageNulsE2Ext + pourcentageNulsE1Dom) / 2;
+
+		Boolean e1MieuxClassee = (Boolean) wi
+				.getValue(UtilitaireLigue1.FORM_FIELD_CHECK_BOX_EQUIPE_DOMICILE_MIEUX_CLASSEE);
+		Boolean e1MatchImportant = (Boolean) wi
+				.getValue(UtilitaireLigue1.FORM_FIELD_CHECK_BOX_IMPORTANT_EQUIPE_DOMICILE);
+		Boolean e2MatchImportant = (Boolean) wi
+				.getValue(UtilitaireLigue1.FORM_FIELD_CHECK_BOX_IMPORTANT_EQUIPE_EXTERIEUR);
+
+		Float pointsResultatsImportance = 0F;
+		Float pointsResultatsImportanceDomExt = 0F;
+
+		if (e2MatchImportant) {
+			if (e1MatchImportant) {
+				Float pourcentageNulsE2Importance = 0F;
+				Float pourcentageNulsE1Importance = 0F;
+
+				int jouesE2Importance = UtilitaireLigue1.getStatInt(e2,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_IMPORTANTS);
+				int nulsE2Importance = UtilitaireLigue1.getStatInt(e2,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_NULS_IMPORTANT);
+				if (jouesE2Importance > 0) {
+					pourcentageNulsE2Importance = (float) ((nulsE2Importance / jouesE2Importance)) * 100;
+				}
+				int jouesE1Importance = UtilitaireLigue1.getStatInt(e1,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_IMPORTANTS);
+				int nulsE1Importance = UtilitaireLigue1.getStatInt(e1,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_NULS_IMPORTANT);
+				if (jouesE1Importance > 0) {
+					pourcentageNulsE1Importance = (float) ((nulsE1Importance / jouesE1Importance)) * 100;
+				}
+				pointsResultatsImportance = (pourcentageNulsE2Importance + pourcentageNulsE1Importance) / 2;
+
+				Float pourcentageNulsE2ExtImportance = 0F;
+				Float pourcentageNulsE1DomImportance = 0F;
+
+				int jouesE2ExtImportance = UtilitaireLigue1.getStatInt(e2,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_IMPORTANTS_EXTERIEUR);
+				int nulsE2ExtImportance = UtilitaireLigue1.getStatInt(e2,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_NULS_IMPORTANT_EXTERIEUR);
+				if (jouesE2ExtImportance > 0) {
+					pourcentageNulsE2ExtImportance = (float) ((nulsE2ExtImportance / jouesE2ExtImportance)) * 100;
+				}
+				int jouesE1DomImportance = UtilitaireLigue1.getStatInt(e1,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_IMPORTANTS_DOMICILE);
+				int nulsE1DomImportance = UtilitaireLigue1.getStatInt(e1,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_NULS_IMPORTANT_DOMICILE);
+				if (jouesE1DomImportance > 0) {
+					pourcentageNulsE1DomImportance = (float) ((nulsE1DomImportance / jouesE1DomImportance))
+							* 100;
+				}
+				pointsResultatsImportanceDomExt = (pourcentageNulsE2ExtImportance
+						+ pourcentageNulsE1DomImportance) / 2;
+			} else {
+				Float pourcentageNulsE2ImportanceNon = 0F;
+				Float pourcentageNulsE1Importance = 0F;
+
+				int jouesE2ImportanceNon = UtilitaireLigue1.getStatInt(e2,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_BANAL);
+				int nulsE2ImportanceNon = UtilitaireLigue1.getStatInt(e2,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_NULS_BANAL);
+				if (jouesE2ImportanceNon > 0) {
+					pourcentageNulsE2ImportanceNon = (float) ((nulsE2ImportanceNon / jouesE2ImportanceNon)) * 100;
+				}
+				int jouesE1Importance = UtilitaireLigue1.getStatInt(e1,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_IMPORTANTS);
+				int nulsE1Importance = UtilitaireLigue1.getStatInt(e1,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_NULS_IMPORTANT);
+				if (jouesE1Importance > 0) {
+					pourcentageNulsE1Importance = (float) ((nulsE1Importance / jouesE1Importance)) * 100;
+				}
+				pointsResultatsImportance = (pourcentageNulsE2ImportanceNon + pourcentageNulsE1Importance) / 2;
+
+				Float pourcentageNulsE2ExtImportanceNon = 0F;
+				Float pourcentageNulsE1DomImportance = 0F;
+
+				int jouesE2ExtImportanceNon = UtilitaireLigue1.getStatInt(e2,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_BANAL_EXTERIEUR);
+				int nulsE2ExtImportanceNon = UtilitaireLigue1.getStatInt(e2,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_NULS_BANAL_EXTERIEUR);
+				if (jouesE2ExtImportanceNon > 0) {
+					pourcentageNulsE2ExtImportanceNon = (float) ((nulsE2ExtImportanceNon
+							/ jouesE2ExtImportanceNon)) * 100;
+				}
+				int jouesE1DomImportance = UtilitaireLigue1.getStatInt(e1,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_IMPORTANTS_DOMICILE);
+				int nulsE1DomImportance = UtilitaireLigue1.getStatInt(e1,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_NULS_IMPORTANT_DOMICILE);
+				if (jouesE1DomImportance > 0) {
+					pourcentageNulsE1DomImportance = (float) ((nulsE1DomImportance / jouesE1DomImportance))
+							* 100;
+				}
+				pointsResultatsImportanceDomExt = (pourcentageNulsE2ExtImportanceNon
+						+ pourcentageNulsE1DomImportance) / 2;
+			}
+		} else {
+			if (e1MatchImportant) {
+				Float pourcentageNulsE2Importance = 0F;
+				Float pourcentageNulsE1ImportanceNon = 0F;
+
+				int jouesE2Importance = UtilitaireLigue1.getStatInt(e2,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_IMPORTANTS);
+				int nulsE2Importance = UtilitaireLigue1.getStatInt(e2,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_NULS_IMPORTANT);
+				if (jouesE2Importance > 0) {
+					pourcentageNulsE2Importance = (float) ((nulsE2Importance / jouesE2Importance)) * 100;
+				}
+				int jouesE1ImportanceNon = UtilitaireLigue1.getStatInt(e1,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_BANAL);
+				int nulsE1ImportanceNon = UtilitaireLigue1.getStatInt(e1,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_NULS_BANAL);
+				if (jouesE1ImportanceNon > 0) {
+					pourcentageNulsE1ImportanceNon = (float) ((nulsE1ImportanceNon / jouesE1ImportanceNon))
+							* 100;
+				}
+				pointsResultatsImportance = (pourcentageNulsE2Importance + pourcentageNulsE1ImportanceNon) / 2;
+
+				Float pourcentageNulsE2ExtImportance = 0F;
+				Float pourcentageNulsE1DomImportanceNon = 0F;
+
+				int jouesE2ExtImportance = UtilitaireLigue1.getStatInt(e2,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_IMPORTANTS_EXTERIEUR);
+				int nulsE2ExtImportance = UtilitaireLigue1.getStatInt(e2,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_NULS_IMPORTANT_EXTERIEUR);
+				if (jouesE2ExtImportance > 0) {
+					pourcentageNulsE2ExtImportance = (float) ((nulsE2ExtImportance / jouesE2ExtImportance)) * 100;
+				}
+				int jouesE1DomImportanceNon = UtilitaireLigue1.getStatInt(e1,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_BANAL_DOMICILE);
+				int nulsE1DomImportanceNon = UtilitaireLigue1.getStatInt(e1,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_NULS_BANAL_DOMICILE);
+				if (jouesE1DomImportanceNon > 0) {
+					pourcentageNulsE1DomImportanceNon = (float) ((nulsE1DomImportanceNon
+							/ jouesE1DomImportanceNon)) * 100;
+				}
+				pointsResultatsImportanceDomExt = (pourcentageNulsE2ExtImportance
+						+ pourcentageNulsE1DomImportanceNon) / 2;
+			} else {
+				Float pourcentageNulsE2ImportanceNon = 0F;
+				Float pourcentageNulsE1ImportanceNon = 0F;
+
+				int jouesE2ImportanceNon = UtilitaireLigue1.getStatInt(e2,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_BANAL);
+				int nulsE2ImportanceNon = UtilitaireLigue1.getStatInt(e2,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_NULS_BANAL);
+				if (jouesE2ImportanceNon > 0) {
+					pourcentageNulsE2ImportanceNon = (float) ((nulsE2ImportanceNon / jouesE2ImportanceNon)) * 100;
+				}
+				int jouesE1ImportanceNon = UtilitaireLigue1.getStatInt(e1,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_BANAL);
+				int nulsE1ImportanceNon = UtilitaireLigue1.getStatInt(e1,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_NULS_BANAL);
+				if (jouesE1ImportanceNon > 0) {
+					pourcentageNulsE1ImportanceNon = (float) ((nulsE1ImportanceNon / jouesE1ImportanceNon))
+							* 100;
+				}
+				pointsResultatsImportance = (pourcentageNulsE2ImportanceNon + pourcentageNulsE1ImportanceNon)
+						/ 2;
+
+				Float pourcentageNulsE2ExtImportanceNon = 0F;
+				Float pourcentageNulsE1DomImportanceNon = 0F;
+
+				int jouesE2ExtImportanceNon = UtilitaireLigue1.getStatInt(e2,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_BANAL_EXTERIEUR);
+				int nuls2ExtImportanceNon = UtilitaireLigue1.getStatInt(e2,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_NULS_BANAL_EXTERIEUR);
+				if (jouesE2ExtImportanceNon > 0) {
+					pourcentageNulsE2ExtImportanceNon = (float) ((nuls2ExtImportanceNon
+							/ jouesE2ExtImportanceNon)) * 100;
+				}
+				int jouesE1DomImportanceNon = UtilitaireLigue1.getStatInt(e1,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_BANAL_DOMICILE);
+				int nulsE1DomImportanceNon = UtilitaireLigue1.getStatInt(e1,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_NULS_BANAL_DOMICILE);
+				if (jouesE1DomImportanceNon > 0) {
+					pourcentageNulsE1DomImportanceNon = (float) ((nulsE1DomImportanceNon
+							/ jouesE1DomImportanceNon)) * 100;
+				}
+				pointsResultatsImportanceDomExt = (pourcentageNulsE2ExtImportanceNon
+						+ pourcentageNulsE1DomImportanceNon) / 2;
+
+			}
+		}
+
+		Float pointsResultatsClassement = 0F;
+		Float pointsResultatsClassementDomExt = 0F;
+
+		if (e1MieuxClassee) {
+
+			Float pourcentageNulsE2ContreClassementSuperieur = 0F;
+			Float pourcentageNulsE1ContreClassementInferieur = 0F;
+
+			int jouesE2ContreClassementSuperieur = UtilitaireLigue1.getStatInt(e2,
+					UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_CLASSEMENT_SUP);
+			int nulsE2ContreClassementSuperieur = UtilitaireLigue1.getStatInt(e2,
+					UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_NULS_CLASSEMENT_SUP);
+			if (jouesE2ContreClassementSuperieur > 0) {
+				pourcentageNulsE2ContreClassementSuperieur = (float) ((nulsE2ContreClassementSuperieur
+						/ jouesE2ContreClassementSuperieur)) * 100;
+			}
+			int jouesE1ContreClassementInferieur = UtilitaireLigue1.getStatInt(e1,
+					UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_CLASSEMENT_INF);
+			int nulsE1ContreClassementInferieur = UtilitaireLigue1.getStatInt(e1,
+					UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_NULS_CLASSEMENT_INF);
+			if (jouesE1ContreClassementInferieur > 0) {
+				pourcentageNulsE1ContreClassementInferieur = (float) ((nulsE1ContreClassementInferieur
+						/ jouesE1ContreClassementInferieur)) * 100;
+			}
+			pointsResultatsClassement = (pourcentageNulsE2ContreClassementSuperieur
+					+ pourcentageNulsE1ContreClassementInferieur) / 2;
+
+			Float pourcentageNulsE2ContreClassementSuperieurExterieur = 0F;
+			Float pourcentageNulsE1ContreClassementInferieurDomicile = 0F;
+
+			int jouesE2ContreClassementSuperieurExterieur = UtilitaireLigue1.getStatInt(e2,
+					UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_CLASSEMENT_SUP_EXTERIEUR);
+			int nulsE2ContreClassementSuperieurExterieur = UtilitaireLigue1.getStatInt(e2,
+					UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_NULS_CLASSEMENT_SUP_EXTERIEUR);
+			if (jouesE2ContreClassementSuperieurExterieur > 0) {
+				pourcentageNulsE2ContreClassementSuperieurExterieur = (float) ((nulsE2ContreClassementSuperieurExterieur
+						/ jouesE2ContreClassementSuperieurExterieur)) * 100;
+			}
+			int jouesE1ContreClassementInferieurDomicile = UtilitaireLigue1.getStatInt(e1,
+					UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_CLASSEMENT_INF_DOMICILE);
+			int nulsE1ContreClassementInferieurDomicile = UtilitaireLigue1.getStatInt(e1,
+					UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_NULS_CLASSEMENT_INF_DOMICILE);
+			if (jouesE1ContreClassementInferieurDomicile > 0) {
+				pourcentageNulsE1ContreClassementInferieurDomicile = (float) ((nulsE1ContreClassementInferieurDomicile
+						/ jouesE1ContreClassementInferieurDomicile)) * 100;
+			}
+			pointsResultatsClassementDomExt = (pourcentageNulsE2ContreClassementSuperieurExterieur
+					+ pourcentageNulsE1ContreClassementInferieurDomicile) / 2;
+
+		} else {
+			Float pourcentageNulsE2ContreClassementInferieur = 0F;
+			Float pourcentageNulsE1ContreClassementSuperieur = 0F;
+
+			int jouesE2ContreClassementInferieur = UtilitaireLigue1.getStatInt(e2,
+					UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_CLASSEMENT_INF);
+			int nulsE2ContreClassementInferieur = UtilitaireLigue1.getStatInt(e2,
+					UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_NULS_CLASSEMENT_INF);
+			if (jouesE2ContreClassementInferieur > 0) {
+				pourcentageNulsE2ContreClassementInferieur = (float) ((nulsE2ContreClassementInferieur
+						/ jouesE2ContreClassementInferieur)) * 100;
+			}
+			int jouesE1ContreClassementSuperieur = UtilitaireLigue1.getStatInt(e1,
+					UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_CLASSEMENT_SUP);
+			int nulsE1ContreClassementSuperieur = UtilitaireLigue1.getStatInt(e1,
+					UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_NULS_CLASSEMENT_SUP);
+			if (jouesE1ContreClassementSuperieur > 0) {
+				pourcentageNulsE1ContreClassementSuperieur = (float) ((nulsE1ContreClassementSuperieur
+						/ jouesE1ContreClassementSuperieur)) * 100;
+			}
+			pointsResultatsClassement = (pourcentageNulsE2ContreClassementInferieur
+					+ pourcentageNulsE1ContreClassementSuperieur) / 2;
+
+			Float pourcentageNulsE2ContreClassementInferieurExterieur = 0F;
+			Float pourcentageNulsE1ContreClassementSuperieurDomicile = 0F;
+
+			int jouesE2ContreClassementInferieurExterieur = UtilitaireLigue1.getStatInt(e2,
+					UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_CLASSEMENT_INF_EXTERIEUR);
+			int nulsE2ContreClassementInferieurExterieur = UtilitaireLigue1.getStatInt(e2,
+					UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_NULS_CLASSEMENT_INF_EXTERIEUR);
+			if (jouesE2ContreClassementInferieurExterieur > 0) {
+				pourcentageNulsE2ContreClassementInferieurExterieur = (float) ((nulsE2ContreClassementInferieurExterieur
+						/ jouesE2ContreClassementInferieurExterieur)) * 100;
+			}
+			int jouesE1ContreClassementSuperieurDomicile = UtilitaireLigue1.getStatInt(e1,
+					UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_CLASSEMENT_SUP_DOMICILE);
+			int nulsE1ContreClassementSuperieurDomicile = UtilitaireLigue1.getStatInt(e1,
+					UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_NULS_CLASSEMENT_SUP_DOMICILE);
+			if (jouesE1ContreClassementSuperieurDomicile > 0) {
+				pourcentageNulsE1ContreClassementSuperieurDomicile = (float) ((nulsE1ContreClassementSuperieurDomicile
+						/ jouesE1ContreClassementSuperieurDomicile)) * 100;
+			}
+			pointsResultatsClassementDomExt = (pourcentageNulsE2ContreClassementInferieurExterieur
+					+ pourcentageNulsE1ContreClassementSuperieurDomicile) / 2;
+
+		}
+
+		totalPoints = coefficientB * averagePercentageOfDrawsInChampionship
+				+ (coefficientF * pourcentageNulsConfrontations) + (coefficientC * nbPointsRapportesParClassement)
+				+ (coefficientC * nbPointsRapportesParClassementsDomEtExt) + (coefficientC * nbPointsForme)
+				+ (coefficientC * forme5DerniersMatchsDraw) + (coefficientC * forme5DerniersMatchsDrawDomExt)
+				+ (coefficientD * pointsResultats) + (coefficientD * pointsResultatsDomExt)
+				+ (coefficientC * nbPointsFormeDomExt) + (coefficientD * pointsResultatsImportance)
+				+ (coefficientD * pointsResultatsImportanceDomExt) + +(coefficientD * pointsResultatsClassement)
+				+ (coefficientD * pointsResultatsClassementDomExt);
+
+		return totalPoints;
+	}
+
+	private Float getProbabilityPointsForHomeTeam(IStorageResource statistiques, String match, IWorkflowInstance wi)
+			throws VdocHelperException {
+
+		Float totalPoints = 0F;
+
+		String[] score = match.split("-");
+		String e1 = score[0];
+		String e2 = score[1];
+
+		Float averagePercentageOfHomeTeamVictoriesInChampionship = getAveragePercentageInChampionship(
+				UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_GAGNES_DOMICILE,
+				UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_DOMICILE);
+
+		Float pourcentageVDOMConfrontations = ((Float) statistiques
+				.getValue(UtilitaireLigue1.TABLE_STATISTIQUES_FIELD_POURCENTAGE_VICTOIRE_DOMICILE));
+
+		String classementE1 = (String) UtilitaireLigue1.getStatString(e1,
+				UtilitaireLigue1.TABLE_FIELD_STRING_CLASSEMENT);
+		String classementE2 = (String) UtilitaireLigue1.getStatString(e2,
+				UtilitaireLigue1.TABLE_FIELD_STRING_CLASSEMENT);
+		Float nbPointsRapportesParClassement = 0F;
+		if (!UtilitaireLigue1.isEmpty(classementE2) && !UtilitaireLigue1.isEmpty(classementE1)) {
+			// e1 mieux classée que e2
+			if (Float.parseFloat(classementE1) < Float.parseFloat(classementE2)) {
+				nbPointsRapportesParClassement = (Float.parseFloat(classementE2) - Float.parseFloat(classementE1));
+			}
+		}
+
+		String classementE1Domicile = (String) UtilitaireLigue1.getStatString(e1,
+				UtilitaireLigue1.TABLE_FIELD_STRING_CLASSEMENT_DOMICILE);
+		String classementE2Exterieur = (String) UtilitaireLigue1.getStatString(e2,
+				UtilitaireLigue1.TABLE_FIELD_STRING_CLASSEMENT_EXTERIEUR);
+		Float nbPointsRapportesParClassementsDomEtExt = 0F;
+		if (!UtilitaireLigue1.isEmpty(classementE2Exterieur) && !UtilitaireLigue1.isEmpty(classementE1Domicile)) {
+			// e1 mieux classée que e2
+			if (Float.parseFloat(classementE2Exterieur) > Float.parseFloat(classementE1Domicile)) {
+				nbPointsRapportesParClassementsDomEtExt = Float.parseFloat(classementE2Exterieur)
+						- (Float.parseFloat(classementE1Domicile));
+			}
+		}
+
+		Float nbPointsForme = 0F;
+		String formeE1 = getFormeActuelle(e1);
+		String formeE2 = getFormeActuelle(e2);
+		if (!UtilitaireLigue1.isEmpty(formeE1) && !UtilitaireLigue1.isEmpty(formeE2)) {
+			if (formeE1.equals("V")) {
+				int serieVe1 = UtilitaireLigue1.getStatInt(e1, UtilitaireLigue1.TABLE_FIELD_SERIE_V_EN_COURS);
+				if (formeE2.equals("V")) {
+					int serieVe2 = UtilitaireLigue1.getStatInt(e2, UtilitaireLigue1.TABLE_FIELD_SERIE_V_EN_COURS);
+					if (serieVe1 > serieVe2) {
+						nbPointsForme = (float) (serieVe1 - serieVe2) * 5;
+					}
+				} else {
+					if (formeE2.equals("N")) {
+						nbPointsForme = (float) serieVe1 * 10;
+					} else {
+						nbPointsForme = (float) serieVe1 * 15;
+					}
+				}
+			}
+		}
+
+		Float nbPointsFormeDomExt = 0F;
+		String formeE1Dom = getFormeActuelleDomicile(e1);
+		String formeE2Ext = getFormeActuelleExterieur(e2);
+		if (!UtilitaireLigue1.isEmpty(formeE1Dom) && !UtilitaireLigue1.isEmpty(formeE2Ext)) {
+			if (formeE1Dom.equals("V")) {
+				int serieVe1 = UtilitaireLigue1.getStatInt(e1, UtilitaireLigue1.TABLE_FIELD_SERIE_V_EN_COURS_DOMICILE);
+				if (formeE2Ext.equals("V")) {
+					int serieVe2 = UtilitaireLigue1.getStatInt(e2,
+							UtilitaireLigue1.TABLE_FIELD_SERIE_V_EN_COURS_EXTERIEUR);
+					if (serieVe1 > serieVe2) {
+						nbPointsFormeDomExt = (float) (serieVe1 - serieVe2) * 5;
+					}
+				} else {
+					if (formeE2Ext.equals("N")) {
+						nbPointsFormeDomExt = (float) serieVe1 * 10;
+					} else {
+						nbPointsFormeDomExt = (float) serieVe1 * 15;
+					}
+				}
+			}
+		}
+
+		Float forme5DerniersMatchsE2 = getFormePointsForTeam(e2);
+		Float forme5DerniersMatchsE1 = getFormePointsForTeam(e1);
+		Float forme5DerniersMatchs = 0F;
+		if (forme5DerniersMatchsE2 < forme5DerniersMatchsE1) {
+			forme5DerniersMatchs = forme5DerniersMatchsE1 - forme5DerniersMatchsE2;
+		}
+
+		Float forme5DerniersMatchsE2Exterieur = getFormePointsExterieur(e2);
+		Float forme5DerniersMatchsE1Domicile = getFormePointsDomicile(e1);
+		Float forme5DerniersMatchsDomExt = 0F;
+		if (forme5DerniersMatchsE2Exterieur < forme5DerniersMatchsE1Domicile) {
+			forme5DerniersMatchsDomExt = forme5DerniersMatchsE1Domicile - forme5DerniersMatchsE2Exterieur;
+		}
+
+		Float pointsResultats = 0F;
+		Float pourcentageDefaitesE2 = 0F;
+		Float pourcentageVictoiresE1 = 0F;
+
+		int jouesE2 = UtilitaireLigue1.getStatInt(e2, UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES);
+		int perdusE2 = UtilitaireLigue1.getStatInt(e2, UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_PERDUS);
+		if (jouesE2 > 0) {
+			pourcentageDefaitesE2 = (float) ((perdusE2 / jouesE2)) * 100;
+		}
+		int jouesE1 = UtilitaireLigue1.getStatInt(e1, UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES);
+		int gagnesE1 = UtilitaireLigue1.getStatInt(e1, UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_GAGNES);
+		if (jouesE1 > 0) {
+			pourcentageVictoiresE1 = (float) ((gagnesE1 / jouesE1)) * 100;
+		}
+		pointsResultats = (pourcentageDefaitesE2 + pourcentageVictoiresE1) / 2;
+
+		Float pointsResultatsDomExt = 0F;
+		Float pourcentageDefaitesE2Ext = 0F;
+		Float pourcentageVictoiresE1Dom = 0F;
+
+		int jouesE2Ext = UtilitaireLigue1.getStatInt(e2, UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_EXTERIEUR);
+		int perdusE2Ext = UtilitaireLigue1.getStatInt(e2, UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_PERDUS_EXTERIEUR);
+		if (jouesE2Ext > 0) {
+			pourcentageDefaitesE2Ext = (float) ((perdusE2Ext / jouesE2Ext)) * 100;
+		}
+		int jouesE1Dom = UtilitaireLigue1.getStatInt(e1, UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_DOMICILE);
+		int gagnesE1Dom = UtilitaireLigue1.getStatInt(e1, UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_GAGNES_DOMICILE);
+		if (jouesE1Dom > 0) {
+			pourcentageVictoiresE1Dom = (float) ((gagnesE1Dom / jouesE1Dom)) * 100;
+		}
+		pointsResultatsDomExt = (pourcentageDefaitesE2Ext + pourcentageVictoiresE1Dom) / 2;
+
+		Boolean e1MieuxClassee = (Boolean) wi
+				.getValue(UtilitaireLigue1.FORM_FIELD_CHECK_BOX_EQUIPE_DOMICILE_MIEUX_CLASSEE);
+		Boolean e1MatchImportant = (Boolean) wi
+				.getValue(UtilitaireLigue1.FORM_FIELD_CHECK_BOX_IMPORTANT_EQUIPE_DOMICILE);
+		Boolean e2MatchImportant = (Boolean) wi
+				.getValue(UtilitaireLigue1.FORM_FIELD_CHECK_BOX_IMPORTANT_EQUIPE_EXTERIEUR);
+
+		Float pointsResultatsImportance = 0F;
+		Float pointsResultatsImportanceDomExt = 0F;
+
+		if (e2MatchImportant) {
+			if (e1MatchImportant) {
+				Float pourcentageDefaitesE2Importance = 0F;
+				Float pourcentageVictoiresE1Importance = 0F;
+
+				int jouesE2Importance = UtilitaireLigue1.getStatInt(e2,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_IMPORTANTS);
+				int perdusE2Importance = UtilitaireLigue1.getStatInt(e2,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_DEFAITE_CONTRE_IMPORTANT);
+				if (jouesE2Importance > 0) {
+					pourcentageDefaitesE2Importance = (float) ((perdusE2Importance / jouesE2Importance)) * 100;
+				}
+				int jouesE1Importance = UtilitaireLigue1.getStatInt(e1,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_IMPORTANTS);
+				int gagnesE1Importance = UtilitaireLigue1.getStatInt(e1,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_VICTOIRES_IMPORTANT);
+				if (jouesE1Importance > 0) {
+					pourcentageVictoiresE1Importance = (float) ((gagnesE1Importance / jouesE1Importance)) * 100;
+				}
+				pointsResultatsImportance = (pourcentageDefaitesE2Importance + pourcentageVictoiresE1Importance) / 2;
+
+				Float pourcentageDefaitesE2ExtImportance = 0F;
+				Float pourcentageVictoiresE1DomImportance = 0F;
+
+				int jouesE2ExtImportance = UtilitaireLigue1.getStatInt(e2,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_IMPORTANTS_EXTERIEUR);
+				int perdusE2ExtImportance = UtilitaireLigue1.getStatInt(e2,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_DEFAITE_CONTRE_IMPORTANT_EXTERIEUR);
+				if (jouesE2ExtImportance > 0) {
+					pourcentageDefaitesE2ExtImportance = (float) ((perdusE2ExtImportance / jouesE2ExtImportance)) * 100;
+				}
+				int jouesE1DomImportance = UtilitaireLigue1.getStatInt(e1,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_IMPORTANTS_DOMICILE);
+				int gagnesE1DomImportance = UtilitaireLigue1.getStatInt(e1,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_VICTOIRES_IMPORTANT_DOMICILE);
+				if (jouesE1DomImportance > 0) {
+					pourcentageVictoiresE1DomImportance = (float) ((gagnesE1DomImportance / jouesE1DomImportance))
+							* 100;
+				}
+				pointsResultatsImportanceDomExt = (pourcentageDefaitesE2ExtImportance
+						+ pourcentageVictoiresE1DomImportance) / 2;
+			} else {
+				Float pourcentageDefaitesE2ImportanceNon = 0F;
+				Float pourcentageVictoiresE1Importance = 0F;
+
+				int jouesE2ImportanceNon = UtilitaireLigue1.getStatInt(e2,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_BANAL);
+				int perdusE2ImportanceNon = UtilitaireLigue1.getStatInt(e2,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_DEFAITE_CONTRE_BANAL);
+				if (jouesE2ImportanceNon > 0) {
+					pourcentageDefaitesE2ImportanceNon = (float) ((perdusE2ImportanceNon / jouesE2ImportanceNon)) * 100;
+				}
+				int jouesE1Importance = UtilitaireLigue1.getStatInt(e1,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_IMPORTANTS);
+				int gagnesE1Importance = UtilitaireLigue1.getStatInt(e1,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_VICTOIRES_IMPORTANT);
+				if (jouesE1Importance > 0) {
+					pourcentageVictoiresE1Importance = (float) ((gagnesE1Importance / jouesE1Importance)) * 100;
+				}
+				pointsResultatsImportance = (pourcentageDefaitesE2ImportanceNon + pourcentageVictoiresE1Importance) / 2;
+
+				Float pourcentageDefaitesE2ExtImportanceNon = 0F;
+				Float pourcentageVictoiresE1DomImportance = 0F;
+
+				int jouesE2ExtImportanceNon = UtilitaireLigue1.getStatInt(e2,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_BANAL_EXTERIEUR);
+				int perdusE2ExtImportanceNon = UtilitaireLigue1.getStatInt(e2,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_DEFAITE_CONTRE_BANAL_EXTERIEUR);
+				if (jouesE2ExtImportanceNon > 0) {
+					pourcentageDefaitesE2ExtImportanceNon = (float) ((perdusE2ExtImportanceNon
+							/ jouesE2ExtImportanceNon)) * 100;
+				}
+				int jouesE1DomImportance = UtilitaireLigue1.getStatInt(e1,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_IMPORTANTS_DOMICILE);
+				int gagnesE1DomImportance = UtilitaireLigue1.getStatInt(e1,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_VICTOIRES_IMPORTANT_DOMICILE);
+				if (jouesE1DomImportance > 0) {
+					pourcentageVictoiresE1DomImportance = (float) ((gagnesE1DomImportance / jouesE1DomImportance))
+							* 100;
+				}
+				pointsResultatsImportanceDomExt = (pourcentageDefaitesE2ExtImportanceNon
+						+ pourcentageVictoiresE1DomImportance) / 2;
+			}
+		} else {
+			if (e1MatchImportant) {
+				Float pourcentageDefaitesE2Importance = 0F;
+				Float pourcentageVictoiresE1ImportanceNon = 0F;
+
+				int jouesE2Importance = UtilitaireLigue1.getStatInt(e2,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_IMPORTANTS);
+				int perdusE2Importance = UtilitaireLigue1.getStatInt(e2,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_DEFAITE_CONTRE_IMPORTANT);
+				if (jouesE2Importance > 0) {
+					pourcentageDefaitesE2Importance = (float) ((perdusE2Importance / jouesE2Importance)) * 100;
+				}
+				int jouesE1ImportanceNon = UtilitaireLigue1.getStatInt(e1,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_BANAL);
+				int gagnesE1ImportanceNon = UtilitaireLigue1.getStatInt(e1,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_VICTOIRES_BANAL);
+				if (jouesE1ImportanceNon > 0) {
+					pourcentageVictoiresE1ImportanceNon = (float) ((gagnesE1ImportanceNon / jouesE1ImportanceNon))
+							* 100;
+				}
+				pointsResultatsImportance = (pourcentageDefaitesE2Importance + pourcentageVictoiresE1ImportanceNon) / 2;
+
+				Float pourcentageDefaitesE2ExtImportance = 0F;
+				Float pourcentageVictoiresE1DomImportanceNon = 0F;
+
+				int jouesE2ExtImportance = UtilitaireLigue1.getStatInt(e2,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_IMPORTANTS_EXTERIEUR);
+				int perdusE2ExtImportance = UtilitaireLigue1.getStatInt(e2,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_DEFAITE_CONTRE_IMPORTANT_EXTERIEUR);
+				if (jouesE2ExtImportance > 0) {
+					pourcentageDefaitesE2ExtImportance = (float) ((perdusE2ExtImportance / jouesE2ExtImportance)) * 100;
+				}
+				int jouesE1DomImportanceNon = UtilitaireLigue1.getStatInt(e1,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_BANAL_DOMICILE);
+				int gagnesE1DomImportanceNon = UtilitaireLigue1.getStatInt(e1,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_VICTOIRES_BANAL_DOMICILE);
+				if (jouesE1DomImportanceNon > 0) {
+					pourcentageVictoiresE1DomImportanceNon = (float) ((gagnesE1DomImportanceNon
+							/ jouesE1DomImportanceNon)) * 100;
+				}
+				pointsResultatsImportanceDomExt = (pourcentageDefaitesE2ExtImportance
+						+ pourcentageVictoiresE1DomImportanceNon) / 2;
+			} else {
+				Float pourcentageDefaitesE2ImportanceNon = 0F;
+				Float pourcentageVictoiresE1ImportanceNon = 0F;
+
+				int jouesE2ImportanceNon = UtilitaireLigue1.getStatInt(e2,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_BANAL);
+				int perdusE2ImportanceNon = UtilitaireLigue1.getStatInt(e2,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_DEFAITE_CONTRE_BANAL);
+				if (jouesE2ImportanceNon > 0) {
+					pourcentageDefaitesE2ImportanceNon = (float) ((perdusE2ImportanceNon / jouesE2ImportanceNon)) * 100;
+				}
+				int jouesE1ImportanceNon = UtilitaireLigue1.getStatInt(e1,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_BANAL);
+				int gagnesE1ImportanceNon = UtilitaireLigue1.getStatInt(e1,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_VICTOIRES_BANAL);
+				if (jouesE1ImportanceNon > 0) {
+					pourcentageVictoiresE1ImportanceNon = (float) ((gagnesE1ImportanceNon / jouesE1ImportanceNon))
+							* 100;
+				}
+				pointsResultatsImportance = (pourcentageDefaitesE2ImportanceNon + pourcentageVictoiresE1ImportanceNon)
+						/ 2;
+
+				Float pourcentageDefaitesE2ExtImportanceNon = 0F;
+				Float pourcentageVictoiresE1DomImportanceNon = 0F;
+
+				int jouesE2ExtImportanceNon = UtilitaireLigue1.getStatInt(e2,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_BANAL_EXTERIEUR);
+				int perdus2ExtImportanceNon = UtilitaireLigue1.getStatInt(e2,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_DEFAITE_CONTRE_BANAL_EXTERIEUR);
+				if (jouesE2ExtImportanceNon > 0) {
+					pourcentageDefaitesE2ExtImportanceNon = (float) ((perdus2ExtImportanceNon
+							/ jouesE2ExtImportanceNon)) * 100;
+				}
+				int jouesE1DomImportanceNon = UtilitaireLigue1.getStatInt(e1,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_BANAL_DOMICILE);
+				int gagnesE1DomImportanceNon = UtilitaireLigue1.getStatInt(e1,
+						UtilitaireLigue1.TABLE_FIELD_NOMBRE_VICTOIRES_BANAL_DOMICILE);
+				if (jouesE1DomImportanceNon > 0) {
+					pourcentageVictoiresE1DomImportanceNon = (float) ((gagnesE1DomImportanceNon
+							/ jouesE1DomImportanceNon)) * 100;
+				}
+				pointsResultatsImportanceDomExt = (pourcentageDefaitesE2ExtImportanceNon
+						+ pourcentageVictoiresE1DomImportanceNon) / 2;
+
+			}
+		}
+
+		Float pointsResultatsClassement = 0F;
+		Float pointsResultatsClassementDomExt = 0F;
+
+		if (e1MieuxClassee) {
+
+			Float pourcentageDefaitesE2ContreClassementSuperieur = 0F;
+			Float pourcentageVictoiresE1ContreClassementInferieur = 0F;
+
+			int jouesE2ContreClassementSuperieur = UtilitaireLigue1.getStatInt(e2,
+					UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_CLASSEMENT_SUP);
+			int perdusE2ContreClassementSuperieur = UtilitaireLigue1.getStatInt(e2,
+					UtilitaireLigue1.TABLE_FIELD_NOMBRE_DEFAITE_CONTRE_CLASSEMENT_SUPERIEUR);
+			if (jouesE2ContreClassementSuperieur > 0) {
+				pourcentageDefaitesE2ContreClassementSuperieur = (float) ((perdusE2ContreClassementSuperieur
+						/ jouesE2ContreClassementSuperieur)) * 100;
+			}
+			int jouesE1ContreClassementInferieur = UtilitaireLigue1.getStatInt(e1,
+					UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_CLASSEMENT_INF);
+			int gagnesE1ContreClassementInferieur = UtilitaireLigue1.getStatInt(e1,
+					UtilitaireLigue1.TABLE_FIELD_NOMBRE_VICTOIRES_CLASSEMENT_INF);
+			if (jouesE1ContreClassementInferieur > 0) {
+				pourcentageVictoiresE1ContreClassementInferieur = (float) ((gagnesE1ContreClassementInferieur
+						/ jouesE1ContreClassementInferieur)) * 100;
+			}
+			pointsResultatsClassement = (pourcentageDefaitesE2ContreClassementSuperieur
+					+ pourcentageVictoiresE1ContreClassementInferieur) / 2;
+
+			Float pourcentageDefaitesE2ContreClassementSuperieurExterieur = 0F;
+			Float pourcentageVictoiresE1ContreClassementInferieurDomicile = 0F;
+
+			int jouesE2ContreClassementSuperieurExterieur = UtilitaireLigue1.getStatInt(e2,
+					UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_CLASSEMENT_SUP_EXTERIEUR);
+			int perdusE2ContreClassementSuperieurExterieur = UtilitaireLigue1.getStatInt(e2,
+					UtilitaireLigue1.TABLE_FIELD_NOMBRE_DEFAITE_CONTRE_CLASSEMENT_SUPERIEUR_EXTERIEUR);
+			if (jouesE2ContreClassementSuperieurExterieur > 0) {
+				pourcentageDefaitesE2ContreClassementSuperieurExterieur = (float) ((perdusE2ContreClassementSuperieurExterieur
+						/ jouesE2ContreClassementSuperieurExterieur)) * 100;
+			}
+			int jouesE1ContreClassementInferieurDomicile = UtilitaireLigue1.getStatInt(e1,
+					UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_CLASSEMENT_INF_DOMICILE);
+			int gagnesE1ContreClassementInferieurDomicile = UtilitaireLigue1.getStatInt(e1,
+					UtilitaireLigue1.TABLE_FIELD_NOMBRE_VICTOIRES_CLASSEMENT_INF_DOMICILE);
+			if (jouesE1ContreClassementInferieurDomicile > 0) {
+				pourcentageVictoiresE1ContreClassementInferieurDomicile = (float) ((gagnesE1ContreClassementInferieurDomicile
+						/ jouesE1ContreClassementInferieurDomicile)) * 100;
+			}
+			pointsResultatsClassementDomExt = (pourcentageDefaitesE2ContreClassementSuperieurExterieur
+					+ pourcentageVictoiresE1ContreClassementInferieurDomicile) / 2;
+
+		} else {
+			Float pourcentageDefaitesE2ContreClassementInferieur = 0F;
+			Float pourcentageVictoiresE1ContreClassementSuperieur = 0F;
+
+			int jouesE2ContreClassementInferieur = UtilitaireLigue1.getStatInt(e2,
+					UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_CLASSEMENT_INF);
+			int perdusE2ContreClassementInferieur = UtilitaireLigue1.getStatInt(e2,
+					UtilitaireLigue1.TABLE_FIELD_NOMBRE_DEFAITE_CONTRE_CLASSEMENT_INFERIEUR);
+			if (jouesE2ContreClassementInferieur > 0) {
+				pourcentageDefaitesE2ContreClassementInferieur = (float) ((perdusE2ContreClassementInferieur
+						/ jouesE2ContreClassementInferieur)) * 100;
+			}
+			int jouesE1ContreClassementSuperieur = UtilitaireLigue1.getStatInt(e1,
+					UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_CLASSEMENT_SUP);
+			int gagnesE1ContreClassementSuperieur = UtilitaireLigue1.getStatInt(e1,
+					UtilitaireLigue1.TABLE_FIELD_NOMBRE_VICTOIRES_CLASSEMENT_SUP);
+			if (jouesE1ContreClassementSuperieur > 0) {
+				pourcentageVictoiresE1ContreClassementSuperieur = (float) ((gagnesE1ContreClassementSuperieur
+						/ jouesE1ContreClassementSuperieur)) * 100;
+			}
+			pointsResultatsClassement = (pourcentageDefaitesE2ContreClassementInferieur
+					+ pourcentageVictoiresE1ContreClassementSuperieur) / 2;
+
+			Float pourcentageDefaitesE2ContreClassementInferieurExterieur = 0F;
+			Float pourcentageVictoiresE1ContreClassementSuperieurDomicile = 0F;
+
+			int jouesE2ContreClassementInferieurExterieur = UtilitaireLigue1.getStatInt(e2,
+					UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_CLASSEMENT_INF_EXTERIEUR);
+			int perdusE2ContreClassementInferieurExterieur = UtilitaireLigue1.getStatInt(e2,
+					UtilitaireLigue1.TABLE_FIELD_NOMBRE_DEFAITE_CONTRE_CLASSEMENT_INFERIEUR_EXTERIEUR);
+			if (jouesE2ContreClassementInferieurExterieur > 0) {
+				pourcentageDefaitesE2ContreClassementInferieurExterieur = (float) ((perdusE2ContreClassementInferieurExterieur
+						/ jouesE2ContreClassementInferieurExterieur)) * 100;
+			}
+			int jouesE1ContreClassementSuperieurDomicile = UtilitaireLigue1.getStatInt(e1,
+					UtilitaireLigue1.TABLE_FIELD_NOMBRE_MATCHS_JOUES_CLASSEMENT_SUP_DOMICILE);
+			int gagnesE1ContreClassementSuperieurDomicile = UtilitaireLigue1.getStatInt(e1,
+					UtilitaireLigue1.TABLE_FIELD_NOMBRE_VICTOIRES_CLASSEMENT_SUP_DOMICILE);
+			if (jouesE1ContreClassementSuperieurDomicile > 0) {
+				pourcentageVictoiresE1ContreClassementSuperieurDomicile = (float) ((gagnesE1ContreClassementSuperieurDomicile
+						/ jouesE1ContreClassementSuperieurDomicile)) * 100;
+			}
+			pointsResultatsClassementDomExt = (pourcentageDefaitesE2ContreClassementInferieurExterieur
+					+ pourcentageVictoiresE1ContreClassementSuperieurDomicile) / 2;
+
+		}
+
+		totalPoints = coefficientB * averagePercentageOfHomeTeamVictoriesInChampionship
+				+ (coefficientF * pourcentageVDOMConfrontations) + (coefficientC * nbPointsRapportesParClassement)
+				+ (coefficientC * nbPointsRapportesParClassementsDomEtExt) + (coefficientC * nbPointsForme)
+				+ (coefficientC * forme5DerniersMatchs) + (coefficientC * forme5DerniersMatchsDomExt)
+				+ (coefficientD * pointsResultats) + (coefficientD * pointsResultatsDomExt)
+				+ (coefficientC * nbPointsFormeDomExt) + (coefficientD * pointsResultatsImportance)
+				+ (coefficientD * pointsResultatsImportanceDomExt) + +(coefficientD * pointsResultatsClassement)
+				+ (coefficientD * pointsResultatsClassementDomExt);
+
+		return totalPoints;
+	}
+
+	private Float getAveragePercentageInChampionship(String evaluatedValue, String total) {
+
+		Float pourcentageTotal = 0F;
+		try {
+			Collection<IStorageResource> equipes = UtilitaireLigue1.getResourcesEquipes();
+			for (IStorageResource equipe : equipes) {
+				Long nbMatchsPrisEnCompte = (Long) equipe.getValue(evaluatedValue);
+				Long nbTotalMatchs = (Long) equipe.getValue(total);
+				if (nbTotalMatchs != 0L) {
+					pourcentageTotal = pourcentageTotal
+							+ (nbMatchsPrisEnCompte.floatValue() / nbTotalMatchs.floatValue()) * 100;
+				}
+			}
+		} catch (VdocHelperException e) {
+			e.printStackTrace();
+		}
+		return pourcentageTotal / 20;
 	}
 
 	private TreeMap<String, String> getTreeMapStatsMoyennes(IStorageResource statistiques, String match) {
