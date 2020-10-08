@@ -762,14 +762,14 @@ public class GenerateRapportStatistiques extends BaseDocumentExtension {
 			}
 
 			if (serieVExterieur > 0L)
-				document.createParagraph().createRun().setText("Nombre de victoires de l'équipe " + team2
-						+ " sur les 5 derniers matchs à domicile : " + serieVExterieur + " V");
+				document.createParagraph().createRun().setText("Série de victoires de l'équipe " + team2
+						+ " sur les 5 derniers matchs à l'extérieur : " + serieVExterieur + " V");
 			if (serieNExterieur > 0L)
-				document.createParagraph().createRun().setText("Nombre de matchs nuls de l'équipe " + team2
-						+ " sur les 5 derniers matchs à domicile : " + serieNExterieur + " N");
+				document.createParagraph().createRun().setText("Série de matchs nuls de l'équipe " + team2
+						+ " sur les 5 derniers matchs à l'extérieur : " + serieNExterieur + " N");
 			if (serieDExterieur > 0L)
-				document.createParagraph().createRun().setText("Nombre de défaites de l'équipe " + team2
-						+ " sur les 5 derniers matchs à domicile : " + serieDExterieur + " D");
+				document.createParagraph().createRun().setText("Série de défaites de l'équipe " + team2
+						+ " sur les 5 derniers matchs à l'extérieur : " + serieDExterieur + " D");
 
 			Long nbDefaitesContreClassementInf;
 			Long nbDefaitesContreClassementInfExterieur;
